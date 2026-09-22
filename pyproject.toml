@@ -1,0 +1,14 @@
+[project]
+name = "snootsbot"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram>=3.31.0",
+    "cryptg>=0.6.0",
+    "numpy>=2.4.6",
+    "pillow>=12.3.0",
+    "python-dotenv>=1.2.4",
+    "sentence-transformers>=6.1.0",
+    "telethon>=1.45.0",
+]
+

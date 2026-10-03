@@ -1,13 +1,4 @@
-"""Every user-facing string of the private chat lives here, so the voice of the bot can be
-tuned without touching the logic. Messages are sent with parse_mode=HTML: dynamic values
-(pack titles, descriptions...) are ALWAYS passed through html.escape in dm.py, and only
-<b>, <i>, <code> are used here.
-
-House rules (tests/test_search.py enforces the first one):
-  * never mention moderation, review, approval or an admin to the user - a pack/description
-    that was sent is simply "added" / "saved";
-  * cute, warm, a little silly (boop!), emojis welcome - but one clear next step per message.
-"""
+"""Every user-facing string of the bot's private chat lives in this module."""
 
 # ------------------------------------------------------------------ buttons
 BTN_MY_PACKS = "⭐ My packs"
@@ -23,26 +14,27 @@ BTN_CARD_EDIT = "✏️ Fix description"
 
 # ------------------------------------------------------------------ start / help
 START = (
-    "🐾 <b>Hello!</b> I'm a bot made for furry stickers search! 👃✨\n\n"
-    "🔍 <b>Finding stickers</b>\n"
-    "In any chat type <code>@{bot} sleepy wolf</code> and I'll fetch the best matches! 🐺💤\n\n"
+    "🐾 <b>Hi there!</b> I find stickers in Telegram, the smart way! 🎨\n\n"
+    "🔍 <b>Search</b>\n"
+    "In any chat type <code>@{bot} sleepy wolf</code> and I'll bring the best matches! 🐺\n\n"
     "💬 <b>In here we can</b>\n"
     "⭐ /packs - pick your favorite packs, their stickers hop to the top of your searches!\n"
-    "➕ Send me a sticker or a <code>t.me/addstickers/…</code> link - I'll take that whole pack into the search! 🎉\n"
-    "✏️ Send me any sticker to correct the description, if you think something is wrong\n\n"
-    "Boop! :3 What shall we do first?"
+    "➕ Send me a sticker or a <code>t.me/addstickers/…</code> link - I'll take that whole "
+    "pack into the search! 🎉\n"
+    "✏️ Send me any sticker to correct its description, if you think something is wrong\n\n"
+    "What shall we do first? ;)"
 )
 
 # ------------------------------------------------------------------ favorites
 FAV_HEAD = ("⭐ <b>Your favorite packs</b>\n\n"
             "Stickers from these packs always hop to the top of your search results! 🐇💨")
-FAV_EMPTY = ("\n\nIt's so empty in here… 🥺\n"
+FAV_EMPTY = ("\n\nIt's a bit empty in here…\n"
              "Tap ➕ to add a pack, or peek at what everybody likes 🔥")
 FAV_FOOT = "\n\n🐾 tap a name to open the pack · 🗑 drops it from your list"
 FAV_REMOVED = "Gone! 🗑 {name} left your favorites"
 FAV_ADDED = "Added to favorites ⭐"
 FAV_FULL = ("🙈 Your favorites list is full ({n} packs)! "
-            "Drop a few with 🗑 and I'll happily take new ones.")
+            "Drop a few with 🗑 and I'll take new ones.")
 
 POPULAR_HEAD = ("🔥 <b>Popular packs</b>\n\n"
                 "Tap a pack to add it to your favorites ⭐ - ↗️ opens it in Telegram.")
@@ -97,14 +89,13 @@ DESC_ASK = (
     "/cancel to skip"
 )
 DESC_BAD = "Hmm, I need 10 to 300 characters 🐾 Try again? (/cancel to skip)"
-DESC_THANKS = "💖 Thank you! Got it (#{sug_id}) - you're the best snoot! 🐾"
+DESC_THANKS = "💖 Thank you! Got it (#{sug_id}) - that helps a lot! 🐾"
 DESC_ERROR = "🙈 Something went wrong on my side, please try again in a bit."
 
 # ------------------------------------------------------------------ misc
 CANCELLED = "Okie, cancelled! 🐾"
 NOTHING_TO_CANCEL = "Nothing to cancel 🐾"
-FALLBACK = ("Boop :3 I speak sticker!\n"
-            "Send me a sticker or a pack link - or use me inline: "
+FALLBACK = ("I speak sticker! Send me a sticker or a pack link - or use me inline: "
             "<code>@{bot} your query</code> 🔍")
 OLD_MENU = "This menu is from an older version 🐾 Send /packs for a fresh one!"
 
@@ -112,3 +103,4 @@ OLD_MENU = "This menu is from an older version 🐾 Send /packs for a fresh one!
 def all_texts() -> dict[str, str]:
     """Every string constant of this module (used by the tests)."""
     return {k: v for k, v in globals().items() if k.isupper() and isinstance(v, str)}
+

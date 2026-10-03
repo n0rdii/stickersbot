@@ -396,7 +396,7 @@ class DmFlows(unittest.TestCase):
         m = self.Msg(text="newpack")
         self.go(self.dm.h_text(m, self.bot, self.store, self.engine, self.cfg))
         self.assertEqual(self.store.pack_requests(), [])                # plain text = chit-chat
-        self.assertIn("Boop", m.sent[0][0])
+        self.assertIn("I speak sticker", m.sent[0][0])
         self.dm._set_mode(1, "add_pack")
         bad = self.Msg(text="not a name!")
         self.go(self.dm.h_text(bad, self.bot, self.store, self.engine, self.cfg))

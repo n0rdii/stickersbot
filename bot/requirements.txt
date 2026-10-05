@@ -1,0 +1,5 @@
+aiogram>=3.20
+numpy
+python-dotenv
+sentence-transformers
+

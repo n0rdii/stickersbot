@@ -1,0 +1,24 @@
+Below is a raw caption of a Telegram sticker, written by a vision model. Clean it up and convert it into one JSON record for a sticker search database.
+
+RAW CAPTION START
+{caption}
+RAW CAPTION END
+
+Return ONLY a single JSON object with exactly these keys and nothing else:
+
+{"description": "...", "characters": ["..."], "objects": ["..."], "actions": ["..."], "emotions": ["..."], "visual_tags": ["..."], "style_tags": ["..."], "nsfw": false}
+
+Rules for each field:
+- Ground everything in the raw caption only. Never invent characters, objects, actions, emotions, styles or facts that the caption does not state. If the caption marks a detail as "unclear" or omits it, omit that detail instead of guessing. Fixes allowed: spelling, grammar, merging duplicates, removing the caption's meta-talk and repeating boilerplate.
+- "description": 1-2 short factual English sentences, at most 30 words: who/what is shown, doing what, with what mood, and any drawn text if TEXT was transcribed. Do not write "idle pose". No hashtags, no quotes, no "this sticker", no mentions of "vision model" or "caption". If the raw caption contains no usable visual information at all, set "description" to "" (empty string).
+- "characters": beings shown (person/creature). Generic terms preferred ("cat", "old man", "bear cub", "chibi girl"); a canonical well-known character name ONLY if the caption states it confidently. Lowercase, each item 1-5 words, at most 12 items.
+- "objects": inanimate props involved in the scene. Lowercase, 1-3 words each, at most 12 items.
+- "actions": what is happening - verbs or short verb phrases ("crying", "waving hand", "drinking coffee"). Lowercase, at most 12 items. Never write "idle", "idle pose" or "standing idle" - if nothing is happening, use [].
+- "emotions": feelings shown ("happy", "smug", "melancholy"). Lowercase, at most 12 items.
+- "visual_tags": notable visual details that aid search ("tears", "blush", "hearts", "closed eyes", "sparkle"). Lowercase, 1-3 words each, at most 12 items. If the caption describes a YCH ("your character here") placeholder, add the tag "ych".
+- "style_tags": art style ("anime", "pixel art", "flat vector", "kawaii", "3d render", "watercolor"). Lowercase, 1-3 words each, at most 12 items.
+- Every list must be a JSON array without duplicates. Use [] when the caption gives nothing for that category - never null, never a string.
+- "nsfw": true ONLY when the caption states nudity, sexual acts, or pornographic/explicit material; mild romance or swear words alone do not count. Otherwise false.
+
+Output strictly one JSON object: no markdown fences, no comments, no text before or after it.
+

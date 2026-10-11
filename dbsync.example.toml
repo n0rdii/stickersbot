@@ -1,0 +1,20 @@
+# Copy to dbsync.toml (git-ignored) on EACH machine and fill in. Env vars DBSYNC_* override it:
+#   DBSYNC_SIDE, DBSYNC_FOLDER_ID, DBSYNC_SA_FILE, DBSYNC_SA_JSON, DBSYNC_DATA_DIR,
+#   DBSYNC_STOP_CMD, DBSYNC_START_CMD, DBSYNC_REMOTE
+
+side = "laptop"                  # "laptop" or "vds"
+remote = "drive"                 # or "dir:/some/folder" (any shared folder, no Google needed)
+
+# id of the Drive folder shared with the service account (the tail of its URL)
+folder_id = "PASTE_FOLDER_ID"
+# path to the service account key (JSON). Keep it OUT of the repo, e.g. ~/.config/snootsbot/
+sa_file = "~/.config/snootsbot/drive-sa.json"
+
+# data_dir = "data"              # where stickers.db / bot_data.db live (relative to this file)
+
+# The VDS only: the bot keeps the embedding matrix in memory, so when new stickers arrive the
+# live stickers.db is swapped while the bot is stopped, then started again. Not needed on
+# the laptop (unless you run the bot there too).
+# stop_cmd  = "systemctl stop snootsbot"
+# start_cmd = "systemctl start snootsbot"
+

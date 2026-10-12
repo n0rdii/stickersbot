@@ -1,0 +1,13 @@
+[Unit]
+Description=snootsbot database sync with Google Drive
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bots/snootsbot
+# uploads bot_data.db when it changed; merges stickers.db and restarts the bot only when the
+# laptop pushed new stickers (config: /opt/bots/snootsbot/dbsync.toml)
+ExecStart=/opt/bots/snootsbot/.venv/bin/python tools/dbsync.py all
+Nice=10
+

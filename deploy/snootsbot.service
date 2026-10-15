@@ -1,0 +1,19 @@
+[Unit]
+Description=snootsbot (Telegram inline sticker search)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/bots/snootsbot
+# BOT_TOKEN, PANEL_PASSWORD, AUTO_APPROVE_PACKS=... live here (never in the repo)
+EnvironmentFile=/opt/bots/snootsbot/.env
+ExecStart=/opt/bots/snootsbot/.venv/bin/python bot/bot.py
+Restart=on-failure
+RestartSec=5
+# stickers.db is swapped while the bot is stopped (dbsync); give it time to finish a query
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+

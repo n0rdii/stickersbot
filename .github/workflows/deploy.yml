@@ -1,0 +1,83 @@
+name: Deploy snootsbot
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-snootsbot
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # the tests use a fake embedder: no torch / model download needed
+      - name: Install test dependencies
+        run: pip install aiogram numpy python-dotenv pillow telethon google-api-python-client google-auth
+      - name: Unit tests
+        run: python -m unittest discover -s tests
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # data/, .env, secrets/, .venv and dbsync.toml live next to the code on the server
+      # and are never touched. Only the code directories are replaced (the model directory
+      # and a legacy bot/.env inside bot/ are kept).
+      - name: Clear old code on the server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            mkdir -p /opt/bots/snootsbot/bot
+            cd /opt/bots/snootsbot
+            find bot -mindepth 1 -maxdepth 1 ! -name 'model_multilingual_minilm' ! -name '.env' -exec rm -rf {} +
+            rm -rf tools deploy
+
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "bot,tools,deploy,pyproject.toml"
+          target: "/opt/bots/snootsbot"
+
+      - name: Install dependencies and restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            command -v uv >/dev/null 2>&1 || export PATH="$HOME/.local/bin:$PATH"
+            command -v uv >/dev/null 2>&1 || { curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null; export PATH="$HOME/.local/bin:$PATH"; }
+            cd /opt/bots/snootsbot
+            [ -d .venv ] || uv venv -p 3.13 .venv
+            # CPU-only torch (the default wheel drags in ~3 GB of CUDA libraries); a no-op later
+            uv pip install -p .venv/bin/python --index-url https://download.pytorch.org/whl/cpu torch
+            uv pip install -p .venv/bin/python -r bot/requirements.txt google-api-python-client google-auth
+            .venv/bin/python -m py_compile bot/*.py tools/dbsync.py
+            cp deploy/snootsbot.service deploy/snootsbot-dbsync.service deploy/snootsbot-dbsync.timer /etc/systemd/system/
+            systemctl daemon-reload
+            systemctl enable snootsbot snootsbot-dbsync.timer >/dev/null 2>&1
+            systemctl restart snootsbot
+            systemctl start snootsbot-dbsync.timer
+            sleep 8
+            systemctl is-active --quiet snootsbot || { journalctl -u snootsbot -n 40 --no-pager; exit 1; }
+            echo "snootsbot is up"
+

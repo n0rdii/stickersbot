@@ -1,4 +1,4 @@
-# snootsbot
+# stickersbot
 
 Inline search bot for Telegram sticker packs. Send `@bot query` in any chat and get
 matching stickers as you type - the index understands plurals, fixes typos and mixes

@@ -219,7 +219,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# --- snootsbot ---
+# --- stickersbot ---
 # local copy of the embedding model (~470 MB)
 model_multilingual_minilm/
 # sqlite side files

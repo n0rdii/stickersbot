@@ -1,5 +1,5 @@
 "use strict";
-/* snootsbot admin frontend. Vanilla JS (no framework, no build step).
+/* stickersbot admin frontend. Vanilla JS (no framework, no build step).
  * Talks to the aiohttp API in bot/panel.py; the chart is hand-rolled SVG. */
 
 const $ = (id) => document.getElementById(id);

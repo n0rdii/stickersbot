@@ -1,4 +1,4 @@
-name: Deploy snootsbot
+name: Deploy stickersbot
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-snootsbot
+  group: deploy-stickersbot
   cancel-in-progress: false
 
 jobs:
@@ -42,8 +42,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            mkdir -p /opt/bots/snootsbot/bot
-            cd /opt/bots/snootsbot
+            mkdir -p /opt/bots/stickersbot/bot
+            cd /opt/bots/stickersbot
             find bot -mindepth 1 -maxdepth 1 ! -name 'model_multilingual_minilm' ! -name '.env' -exec rm -rf {} +
             rm -rf tools deploy
 
@@ -54,7 +54,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "bot,tools,deploy,pyproject.toml"
-          target: "/opt/bots/snootsbot"
+          target: "/opt/bots/stickersbot"
 
       - name: Install dependencies and restart
         uses: appleboy/ssh-action@v1.0.3
@@ -66,17 +66,17 @@ jobs:
             set -e
             command -v uv >/dev/null 2>&1 || export PATH="$HOME/.local/bin:$PATH"
             command -v uv >/dev/null 2>&1 || { curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null; export PATH="$HOME/.local/bin:$PATH"; }
-            cd /opt/bots/snootsbot
+            cd /opt/bots/stickersbot
             [ -d .venv ] || uv venv -p 3.13 .venv
             # CPU-only torch (the default wheel drags in ~3 GB of CUDA libraries); a no-op later
             uv pip install -p .venv/bin/python --index-url https://download.pytorch.org/whl/cpu torch
             uv pip install -p .venv/bin/python -r bot/requirements.txt google-api-python-client google-auth
             .venv/bin/python -m py_compile bot/*.py tools/dbsync.py
-            cp deploy/snootsbot.service deploy/snootsbot-dbsync.service deploy/snootsbot-dbsync.timer /etc/systemd/system/
+            cp deploy/stickersbot.service deploy/stickersbot-dbsync.service deploy/stickersbot-dbsync.timer /etc/systemd/system/
             systemctl daemon-reload
-            systemctl enable snootsbot snootsbot-dbsync.timer >/dev/null 2>&1
-            systemctl restart snootsbot
-            systemctl start snootsbot-dbsync.timer
+            systemctl enable stickersbot stickersbot-dbsync.timer >/dev/null 2>&1
+            systemctl restart stickersbot
+            systemctl start stickersbot-dbsync.timer
             sleep 8
-            systemctl is-active --quiet snootsbot || { journalctl -u snootsbot -n 40 --no-pager; exit 1; }
-            echo "snootsbot is up"
+            systemctl is-active --quiet stickersbot || { journalctl -u stickersbot -n 40 --no-pager; exit 1; }
+            echo "stickersbot is up"

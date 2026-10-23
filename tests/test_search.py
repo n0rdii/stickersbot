@@ -282,7 +282,7 @@ class DmFlows(unittest.TestCase):
             self.sets, self.fail = sets, False
 
         async def me(self):
-            return types.SimpleNamespace(username="snoots_bot")
+            return types.SimpleNamespace(username="stickers_bot")
 
         async def get_sticker_set(self, name):
             from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
@@ -552,7 +552,7 @@ class DmFlows(unittest.TestCase):
     def test_start_names_the_bot(self):
         m = self.Msg()
         self.go(self.dm.h_start(m, self.bot))
-        self.assertIn("@snoots_bot", m.sent[0][0])
+        self.assertIn("@stickers_bot", m.sent[0][0])
 
 
 class ParserRequests(unittest.TestCase):

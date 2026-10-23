@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["google-api-python-client>=2.100", "google-auth>=2.23"]
 # ///
-"""Sync the snootsbot SQLite databases between the laptop, Google Drive and the VDS."""
+"""Sync the stickersbot SQLite databases between the laptop, Google Drive and the VDS."""
 from __future__ import annotations
 
 import argparse

@@ -7,7 +7,7 @@ laptop (parser, JoyCaption) <--dbsync--> Google Drive folder <--dbsync--> VDS (b
 ## 1. Google Drive (once)
 1. Google Cloud console -> create a project -> enable **Google Drive API**.
 2. IAM -> Service accounts -> create one -> Keys -> add a **JSON key**. Keep the file out of
-   the repo (e.g. `~/.config/snootsbot/drive-sa.json` on the laptop, `/opt/bots/snootsbot/secrets/drive-sa.json` on the VDS, chmod 600).
+   the repo (e.g. `~/.config/stickersbot/drive-sa.json` on the laptop, `/opt/bots/stickersbot/secrets/drive-sa.json` on the VDS, chmod 600).
 3. In Drive create a folder, share it with the service account's e-mail (Editor). The folder
    id is the tail of its URL.
 4. `uv run tools/dbsync.py init`. A service account has no Drive quota, so on a normal "My
@@ -27,11 +27,11 @@ pull bot_data, sync stickers, back up raw_captions.) Do not run it while the par
 
 ## 3. VDS (once)
 ```
-mkdir -p /opt/bots/snootsbot/{data,secrets}
-# /opt/bots/snootsbot/.env : BOT_TOKEN=..., PANEL_PASSWORD=..., AUTO_APPROVE_PACKS=1 (optional)
-# /opt/bots/snootsbot/secrets/drive-sa.json : the key
-# /opt/bots/snootsbot/dbsync.toml : side = "vds", folder_id, sa_file,
-#                                   stop_cmd = "systemctl stop snootsbot", start_cmd = "systemctl start snootsbot"
+mkdir -p /opt/bots/stickersbot/{data,secrets}
+# /opt/bots/stickersbot/.env : BOT_TOKEN=..., PANEL_PASSWORD=..., AUTO_APPROVE_PACKS=1 (optional)
+# /opt/bots/stickersbot/secrets/drive-sa.json : the key
+# /opt/bots/stickersbot/dbsync.toml : side = "vds", folder_id, sa_file,
+#                                   stop_cmd = "systemctl stop stickersbot", start_cmd = "systemctl start stickersbot"
 ```
 Then push to `main`: the workflow runs the tests, copies the code, installs the dependencies
 (CPU torch), installs the systemd units and restarts the bot. The sync timer starts 2 minutes after the deploy (then every 10 min): on the fresh VDS it

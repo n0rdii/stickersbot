@@ -381,4 +381,3 @@ class Store:
                 "VALUES(?,?,?,?,?)",
                 (sticker_id, editor, int(time.time()), old_text, new_text))
             self.db.commit()
-

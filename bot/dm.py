@@ -398,4 +398,3 @@ async def h_text(m: Message, bot: Bot, store, engine, cfg):
         return
 
     await _say(m, T.FALLBACK.format(bot=_esc(await _bot_name(bot))), main_kb())
-

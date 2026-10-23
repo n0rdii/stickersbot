@@ -80,4 +80,3 @@ jobs:
             sleep 8
             systemctl is-active --quiet snootsbot || { journalctl -u snootsbot -n 40 --no-pager; exit 1; }
             echo "snootsbot is up"
-

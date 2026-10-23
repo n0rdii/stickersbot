@@ -1,3 +1,2 @@
 # Pack list for the parser: one t.me/addstickers/<name> link (or just <name>) per line.
 # '#' starts a comment.
-

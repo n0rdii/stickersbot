@@ -17,4 +17,3 @@ sa_file = "~/.config/snootsbot/drive-sa.json"
 # the laptop (unless you run the bot there too).
 # stop_cmd  = "systemctl stop snootsbot"
 # start_cmd = "systemctl start snootsbot"
-

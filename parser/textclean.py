@@ -51,4 +51,3 @@ def fts_values(description: str, lists: dict, emoji: str, set_title: str) -> tup
     return (index_description(description),
             *[" ".join(index_list(lists.get(k))) for k in FTS_LIST_KEYS],
             emoji or "", set_title or "")
-

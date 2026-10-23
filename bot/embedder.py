@@ -33,4 +33,3 @@ class Embedder:
 
     def query(self, text: str) -> np.ndarray:
         return self.model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
-

@@ -10,4 +10,3 @@ repos:
     exclude: 'uv\.lock$'
   - id: check-added-large-files
   - id: debug-statements
-

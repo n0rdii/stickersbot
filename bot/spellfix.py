@@ -74,4 +74,3 @@ class SpellFixer:
         fixed = [self.correct_token(t, being_typed=(i == len(toks) - 1))
                  for i, t in enumerate(toks)]
         return " ".join(fixed) if fixed != toks else text
-

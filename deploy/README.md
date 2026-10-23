@@ -52,4 +52,3 @@ a password), `SSH_PRIVATE_KEY`.
   side refuses to push them (and the owner refuses to pull over its own data) without `--force`.
 * Every transfer is a consistent sqlite snapshot, gzip-compressed, checked with md5 and
   `PRAGMA quick_check` before it is used.
-

@@ -21,4 +21,3 @@ Rules for each field:
 - "nsfw": true ONLY when the caption states nudity, sexual acts, or pornographic/explicit material; mild romance or swear words alone do not count. Otherwise false.
 
 Output strictly one JSON object: no markdown fences, no comments, no text before or after it.
-

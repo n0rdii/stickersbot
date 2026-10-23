@@ -260,4 +260,3 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
 
     web.run_app(app, host=host, port=port, access_log=None, handle_signals=False,
                 print=lambda *a, **k: None)
-

@@ -103,4 +103,3 @@ OLD_MENU = "This menu is from an older version 🐾 Send /packs for a fresh one!
 def all_texts() -> dict[str, str]:
     """Every string constant of this module (used by the tests)."""
     return {k: v for k, v in globals().items() if k.isupper() and isinstance(v, str)}
-

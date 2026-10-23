@@ -99,4 +99,3 @@ an existing DB (FTS; `--reembed` also recomputes vectors) - run it with the bot 
 | `AUTO_APPROVE_PACKS=1` | index user packs without a panel click |
 | `EMB_DEVICE`, `MODEL_DIR` | embedder device / local model copy |
 | `dbsync.toml` | backup/sync config, see `dbsync.example.toml` |
-

@@ -10,4 +10,3 @@ WorkingDirectory=/opt/bots/snootsbot
 # laptop pushed new stickers (config: /opt/bots/snootsbot/dbsync.toml)
 ExecStart=/opt/bots/snootsbot/.venv/bin/python tools/dbsync.py all
 Nice=10
-

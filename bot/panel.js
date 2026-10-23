@@ -571,4 +571,3 @@ window.addEventListener("resize", () => {       // keep the chart responsive
 
 api("/api/me").then((me) => (me.authed ? showApp() : showLogin()))
   .catch(() => showLogin());
-

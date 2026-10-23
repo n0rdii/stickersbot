@@ -572,4 +572,3 @@ if __name__ == "__main__":
         asyncio.run(run(parse_args()))
     except KeyboardInterrupt:
         print("interrupted; everything already written to the DB is saved")
-

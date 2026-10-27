@@ -242,14 +242,16 @@ async def postprocess(session, cfg, pp_prompt: str, caption: str, uid: str = "")
         messages = [{"role": "system", "content": pp_prompt}, {"role": "user", "content": caption}]
     payload = {"model": cfg.or_model, "messages": messages, "temperature": 0.1,
                "max_tokens": cfg.pp_max_tokens, "response_format": {"type": "json_object"}}
-    if cfg.pp_reasoning == "off":
-        payload["reasoning"] = {"enabled": False}     # otherwise it eats the whole max_tokens
-    headers = {"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
-               "X-Title": "sticker-search-pipeline"}
+    pp_url = cfg.pp_url
+    pp_headers = None
+    if "openrouter" in pp_url:
+        if cfg.pp_reasoning == "off":
+            payload["reasoning"] = {"enabled": False}   # otherwise it eats the whole max_tokens
+        pp_headers = {"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
+                      "X-Title": "sticker-search-pipeline"}
     last: Exception | None = None
     for attempt in range(3):
-        resp = await post_json(session, "https://openrouter.ai/api/v1/chat/completions",
-                               payload, headers)
+        resp = await post_json(session, pp_url, payload, pp_headers)
         try:
             choice = resp["choices"][0]
             msg = choice.get("message") or {}
@@ -559,16 +561,20 @@ def parse_args(argv=None):
                     help="postprocessor generation ceiling (reasoning models spend part of it on reasoning)")
     ap.add_argument("--pp-reasoning", default=os.getenv("PP_REASONING", ""),
                     help="off = disable reasoning in the postprocessor (otherwise it may eat the whole token budget)")
+    ap.add_argument("--pp-url", default=os.getenv("PP_URL", "https://openrouter.ai/api/v1/chat/completions"),
+                    help="postprocessor chat-completions endpoint; point it at Ollama "
+                         "(http://127.0.0.1:11434/v1/chat/completions) to use a local model")
     return ap.parse_args(argv)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    for var in ("BOT_TOKEN", "OPENROUTER_API_KEY"):
-        if not os.getenv(var):
-            sys.exit(f"environment variable {var} is not set "
-                     f"(put it in .env next to parser.py or export {var}=...)")
+    cfg = parse_args()
+    needs_or_key = "openrouter" in cfg.pp_url
+    if not os.getenv("BOT_TOKEN") or (needs_or_key and not os.getenv("OPENROUTER_API_KEY")):
+        sys.exit("environment variable BOT_TOKEN or OPENROUTER_API_KEY is not set "
+                 "(put it in .env next to parser.py or export ...)")
     try:
-        asyncio.run(run(parse_args()))
+        asyncio.run(run(cfg))
     except KeyboardInterrupt:
         print("interrupted; everything already written to the DB is saved")

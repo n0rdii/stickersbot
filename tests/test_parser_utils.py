@@ -1,10 +1,12 @@
 """tests for parser/parser.py helpers (no network, no model)."""
 import base64
+import asyncio
 import io
 import json
 import sqlite3
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -95,6 +97,53 @@ class TestPrepareImage(unittest.TestCase):
         self.assertLessEqual(out.width, 512)
         px = out.getpixel((5, 5))
         self.assertGreaterEqual(sum(px[:3]), 600)            # no black corners
+
+
+class _Response:
+    status = 200
+
+    def __init__(self, body):
+        self._body = body
+
+    async def json(self):
+        return self._body
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+
+class _Session:
+    def __init__(self, body):
+        self.body = body
+        self.url = self.headers = None
+
+    def post(self, url, json=None, headers=None):
+        self.url, self.headers = url, headers
+        return _Response(self.body)
+
+
+class TestPostprocessEndpoint(unittest.TestCase):
+    """The postprocessor talks to any OpenAI-compatible endpoint; a local one
+    (Ollama) needs no OpenRouter key."""
+
+    def go(self, coro):
+        return asyncio.run(coro)
+
+    def test_local_endpoint_needs_no_key(self):
+        cfg = types.SimpleNamespace(or_model="qwen2.5:14b", pp_max_tokens=100, pp_reasoning="",
+                                    pp_url="http://127.0.0.1:11434/v1/chat/completions")
+        valid = '{"description": "a cat", "nsfw": false}'
+        s = _Session({"choices": [{"message": {"content": valid}}]})
+        self.assertEqual(self.go(parser_mod.postprocess(s, cfg, "cap", "x")),
+                         parser_mod.parse_json_record(valid))
+        self.assertEqual(s.url, cfg.pp_url)
+        self.assertIsNone(s.headers)                          # no Authorization header
+
+    def test_default_points_at_openrouter(self):
+        self.assertIn("openrouter.ai", parser_mod.parse_args([]).pp_url)
 
 
 if __name__ == "__main__":

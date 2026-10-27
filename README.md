@@ -96,6 +96,9 @@ an existing DB (FTS; `--reembed` also recomputes vectors) - run it with the bot 
 | `.env` (next to `parser.py`/`bot.py`) | `BOT_TOKEN`, `OPENROUTER_API_KEY`, `PANEL_PASSWORD` |
 | `JOY_URL`, `JOY_MODEL` | JoyCaption server endpoint / model id |
 | `OPENROUTER_MODEL`, `PP_REASONING=off` | postprocessing model; disable reasoning |
+| `PP_URL` | postprocessor endpoint (default OpenRouter). Point it at
+  `http://127.0.0.1:11434/v1/chat/completions` + `OPENROUTER_MODEL=qwen2.5:14b` to run
+  the postprocessor on a local model via Ollama (no API key needed) |
 | `AUTO_APPROVE_PACKS=1` | index user packs without a panel click |
 | `EMB_DEVICE`, `MODEL_DIR` | embedder device / local model copy |
 | `dbsync.toml` | backup/sync config, see `dbsync.example.toml` |

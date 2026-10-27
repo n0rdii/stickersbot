@@ -20,7 +20,7 @@ jobs:
           python-version: "3.13"
       # the tests use a fake embedder: no torch / model download needed
       - name: Install test dependencies
-        run: pip install aiogram numpy python-dotenv pillow telethon google-api-python-client google-auth
+        run: pip install aiogram numpy python-dotenv pillow telethon google-api-python-client google-auth langgraph
       - name: Unit tests
         run: python -m unittest discover -s tests
 

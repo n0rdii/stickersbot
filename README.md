@@ -23,13 +23,15 @@ server, e.g. llama.cpp), turns the caption into structured JSON with a second LL
 (OpenRouter): description, characters, actions, style tags, NSFW flag. Then
 `paraphrase-multilingual-MiniLM-L12-v2` produces a 384-dim embedding; everything lands
 in `data/stickers.db` (SQLite, FTS5 index kept in sync via `parser/textclean.py`).
+The stages are wired as a LangGraph graph (`parser/graph.py`): `scan` fans out with
+`Send`, then caption → postprocess → persist, each sticker its own branch.
 
 The run is fully resumable: `file_unique_id` is the dedup key, raw captions are cached
 in `data/raw_captions.db`, so a rerun skips whatever is already stored.
 
 ```bash
 cd parser
-pip install -r ../bot/requirements.txt pillow
+pip install -r ../bot/requirements.txt pillow langgraph
 echo "BOT_TOKEN=..." > .env
 echo "OPENROUTER_API_KEY=..." >> .env
 python parser.py --limit 50     # trial run (needs the JoyCaption server at JOY_URL)
@@ -70,7 +72,7 @@ Reach it via an ssh tunnel; auth is by password into an HttpOnly cookie.
 ## Layout
 
 ```
-parser/   indexing pipeline (parser.py, embedder.py, textclean.py, reindex.py, prompts)
+parser/   indexing pipeline (graph.py, parser.py, embedder.py, textclean.py, reindex.py, prompts)
 bot/      self-contained search bot (search, metrics store, panel, private chat)
 crawler/  collects pack links from a Telegram channel into parser/base-stickerpacks.txt
 tools/    dbsync.py - laptop <-> Google Drive <-> VDS database sync (3-way row merge)

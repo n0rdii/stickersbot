@@ -1,10 +1,11 @@
 [project]
 name = "stickersbot"
-version = "1.0.0"
+version = "1.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "aiogram>=3.31.0",
     "cryptg>=0.6.0",
+    "langgraph>=0.2",
     "numpy>=2.4.6",
     "pillow>=12.3.0",
     "python-dotenv>=1.2.4",

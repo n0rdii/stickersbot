@@ -327,101 +327,6 @@ def save_batch(db, emb, batch: list[Item], counters: dict, model_name: str):
 
 
 # ---------------------------------------------------------------- pipeline
-async def stage(n_workers, q_in, q_out, handler, n_next, counters, name,
-                stop: asyncio.Event):
-    async def worker():
-        while True:
-            item = await q_in.get()
-            if item is None:
-                return
-            if stop.is_set():                 # run is stopping (HTTP 402): drop the tail
-                counters["dropped"] += 1
-                continue
-            try:
-                out = await handler(item)
-            except QuotaExhausted as e:
-                stop.set()
-                counters["failed"] += 1
-                log.error("[%s] %s: %s - stopping the run: OpenRouter quota is exhausted. "
-                          "Everything already written stays in the DB; rerun later.",
-                          name, item.uid, e)
-                continue
-            except Exception as e:
-                counters["failed"] += 1
-                log.warning("[%s] %s: %s", name, item.uid, e)
-                continue
-            if out is not None:
-                await q_out.put(out)
-
-    await asyncio.gather(*(worker() for _ in range(n_workers)))
-    for _ in range(n_next):
-        await q_out.put(None)
-
-
-async def writer(db, emb, q_in, counters, model_name, batch_size):
-    done = False
-    while not done:
-        item = await q_in.get()
-        if item is None:
-            break
-        batch = [item]
-        while len(batch) < batch_size:
-            try:
-                nxt = q_in.get_nowait()
-            except asyncio.QueueEmpty:
-                break
-            if nxt is None:
-                done = True
-                break
-            batch.append(nxt)
-        try:
-            await asyncio.to_thread(save_batch, db, emb, batch, counters, model_name)
-        except Exception as e:
-            counters["failed"] += len(batch)
-            log.exception("batch write failed: %s", e)
-
-
-async def produce(tg, packs, known, q_dl, counters, limit, n_next, stop: asyncio.Event):
-    n = 0
-    try:
-        for idx, name in enumerate(packs):
-            if stop.is_set():
-                log.error("pack list interrupted by the quota stop: %d of %d packs left",
-                          len(packs) - idx, len(packs))
-                return
-            s = await tg.get_pack(name)
-            if s is None:
-                counters["packs_bad"] += 1
-                log.warning("pack %s is unavailable", name)
-                continue
-            new = 0
-            for st in s.stickers:
-                if stop.is_set():
-                    return
-                if getattr(st, "type", "regular") == "custom_emoji":
-                    continue
-                if st.file_unique_id in known:
-                    counters["dup"] += 1
-                    continue
-                kind = "animated" if st.is_animated else ("video" if st.is_video else "static")
-                src = st.file_id if kind == "static" else (st.thumbnail.file_id if st.thumbnail else None)
-                if not src:
-                    counters["no_thumb"] += 1
-                    continue
-                known.add(st.file_unique_id)      # skip the same sticker met again in this run
-                await q_dl.put(Item(st.file_unique_id, st.file_id, src, s.name, s.title,
-                                    st.emoji or "", kind))
-                new += 1
-                n += 1
-                if limit and n >= limit:
-                    log.info("reached --limit %d", limit)
-                    return
-            log.info("pack %s: %d new of %d", name, new, len(s.stickers))
-    finally:
-        for _ in range(n_next):
-            await q_dl.put(None)
-
-
 async def reporter(counters, t0):
     while True:
         await asyncio.sleep(30)
@@ -461,7 +366,6 @@ async def run(cfg, tg=None, emb=None):
     cache = sqlite3.connect(cfg.raw_cache)     # raw JoyCaption captions: avoid re-running the GPU
     cache.execute("CREATE TABLE IF NOT EXISTS raw(uid TEXT PRIMARY KEY, caption TEXT, ts INTEGER)")
     raw_cache = dict(cache.execute("SELECT uid, caption FROM raw"))
-    model_name = Path(cfg.model_dir).name
     log.info("packs in the list: %d, stickers already in DB/skipped: %d, raw captions cached: %d",
              len(packs), len(known), len(raw_cache))
 
@@ -469,49 +373,22 @@ async def run(cfg, tg=None, emb=None):
                 ("saved", "rejected", "failed", "dup", "no_thumb", "packs_bad", "captioned",
                  "dropped")}
     stop = asyncio.Event()
-    q_dl = asyncio.Queue(maxsize=32)
-    q_cap = asyncio.Queue(maxsize=8)         # images in memory: keep the queue bounded
-    q_pp = asyncio.Queue(maxsize=32)
-    q_save = asyncio.Queue(maxsize=64)
     t0 = time.time()
 
+    try:
+        from graph import build_pipeline
+    except ImportError:
+        raise SystemExit("langgraph is not installed: pip install langgraph")
+
     async with make_session() as session:
-        async def h_download(it: Item):
-            if it.uid in raw_cache:                       # caption already cached - file not needed
-                it.raw_caption = raw_cache[it.uid]
-                return it
-            raw = await tg.download(it.src_file_id)
-            it.image_b64 = await asyncio.to_thread(prepare_image, raw)
-            return it
-
-        async def h_caption(it: Item):
-            if it.raw_caption is None:
-                it.raw_caption = await joy_caption(session, cfg, joy_prompt, it.image_b64,
-                                                   uid=it.uid)
-                it.image_b64 = None                       # the image is no longer needed
-                cache.execute("INSERT OR REPLACE INTO raw VALUES (?,?,?)",
-                              (it.uid, it.raw_caption, int(time.time())))
-                cache.commit()
-                counters["captioned"] += 1
-            return it
-
-        async def h_pp(it: Item):
-            rec = await postprocess(session, cfg, pp_prompt, it.raw_caption, uid=it.uid)
-            rec["nsfw"] = classify(rec)
-            it.rec = rec
-            return it
-
+        graph, flush = build_pipeline(cfg, tg, session, emb, db, cache, raw_cache,
+                                      packs, known, counters, stop, joy_prompt, pp_prompt)
         rep = asyncio.create_task(reporter(counters, t0))
         try:
-            await asyncio.gather(
-                produce(tg, packs, known, q_dl, counters, cfg.limit, cfg.dl_concurrency, stop),
-                stage(cfg.dl_concurrency, q_dl, q_cap, h_download, cfg.joy_concurrency, counters, "download", stop),
-                stage(cfg.joy_concurrency, q_cap, q_pp, h_caption, cfg.pp_concurrency, counters, "joycaption", stop),
-                stage(cfg.pp_concurrency, q_pp, q_save, h_pp, 1, counters, "postprocess", stop),
-                writer(db, emb, q_save, counters, model_name, cfg.emb_batch),
-            )
+            await graph.ainvoke({}, config={"recursion_limit": 64})
         finally:
             rep.cancel()
+            await flush()                     # drain the persist buffer if anything is left
             total = db.execute("SELECT COUNT(*) FROM stickers").fetchone()[0]
             set_meta(db, "count", total)
             db.commit()

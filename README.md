@@ -94,9 +94,9 @@ an existing DB (FTS; `--reembed` also recomputes vectors) - run it with the bot 
 
 ## Search evals
 
-`tools/eval_search.py` measures retrieval quality on a labelled query set: hit@k (a
-sticker from an expected pack made it into the top-k), MRR, recall@k and nDCG@k over
-packs.
+`tools/eval_search.py` measures retrieval quality on a labelled query set: hit@k (an
+expected pack is among the first k distinct packs of the 50 results the search returns),
+MRR, recall@k and nDCG@k over packs.
 
 ```bash
 cp evals/queries.example.jsonl evals/queries.jsonl    # then fill in your real pack names

@@ -239,3 +239,6 @@ data/.sync/
 *.patch
 
 *.db
+
+# personal eval labels (copy evals/queries.example.jsonl and fill in your packs)
+evals/queries.jsonl

@@ -433,10 +433,11 @@ def parse_args(argv=None):
                     help="cuda/cpu for the embedder; empty = auto")
     ap.add_argument("--top-k", type=int, default=50,
                     help="how many stickers to answer with (Telegram allows at most 50)")
-    ap.add_argument("--fts-top", type=int, default=120, help="candidates from the FTS channel")
-    ap.add_argument("--vec-top", type=int, default=120, help="candidates from the vector channel")
+    ap.add_argument("--fts-top", type=int, default=300, help="candidates from the FTS channel")
+    ap.add_argument("--vec-top", type=int, default=300, help="candidates from the vector channel")
     ap.add_argument("--fts-weight", type=float, default=1.0)
-    ap.add_argument("--vec-weight", type=float, default=1.0)
+    ap.add_argument("--vec-weight", type=float, default=1.5,
+                    help="dense channel weight in RRF (>1 favours meaning over keywords)")
     ap.add_argument("--cache-time", type=int, default=60,
                     help="Telegram cache for identical queries, seconds")
     ap.add_argument("--hide-nsfw", action="store_true",

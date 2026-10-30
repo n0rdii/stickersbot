@@ -108,6 +108,15 @@ Labels are JSONL, `#` lines are comments: `{"query": "sleeping cat", "packs": ["
 Evals run without the bot and without personalization; `--model-dir`/`--emb-device` pass
 through the same way as for the bot.
 
+On the production DB (7.5k stickers, 162 packs) the defaults score on 25 queries
+(99 expected packs): species, emotions, actions, objects and three Russian queries.
+Labels are made from the DB itself: a pack is expected when its descriptions show the
+theme on at least two stickers (one for very narrow queries).
+
+| hit@10 | MRR | recall@10 | nDCG@10 |
+|---|---|---|---|
+| 1.00 | 0.60 | 0.69 | 0.53 |
+
 ## Config
 
 | Where | What |

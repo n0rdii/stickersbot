@@ -1,0 +1,11 @@
+# Relevance labels for tools/eval_search.py: one JSON per line, '#' lines are comments.
+# "packs" - set_name of the packs that fit the query (any order, case-insensitive).
+# List your packs:  sqlite3 data/stickers.db "SELECT set_name, COUNT(*) FROM stickers GROUP BY set_name"
+{"query": "sleeping cat", "packs": ["cozy_cats"]}
+{"query": "happy dog dancing", "packs": ["dancing_dogs"]}
+{"query": "sad pepe", "packs": ["pepe"]}
+{"query": "coffee morning", "packs": ["coffee_mugs"]}
+{"query": "angry cat", "packs": ["grumpy_cats", "cat_reactions"]}
+{"query": "love you", "packs": ["hearts"]}
+{"query": "gg well played", "packs": ["gaming_emotes"]}
+{"query": "rainy mood", "packs": ["weather"]}

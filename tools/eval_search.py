@@ -62,12 +62,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--labels", default=str(ROOT / "evals" / "queries.jsonl"),
                     help='JSONL, one {"query": ..., "packs": [...]} per line')
-    ap.add_argument("-k", "--k", type=int, default=10, help="cut-off in packs (1..50)")
+    ap.add_argument("-k", "--k", type=int, default=10,
+                    help="cut-off in distinct packs (1..50)")
     ap.add_argument("--log-level", default="WARNING")
     args, rest = ap.parse_known_args()
 
     logging.basicConfig(level=args.log_level.upper(), format="%(message)s")
-    cfg = botmod.parse_args(rest + ["--top-k", str(max(1, min(50, args.k)))])
+    cfg = botmod.parse_args(rest + ["--top-k", "50"])   # packs are ranked over the full answer
     queries = load_labels(args.labels)
     search = botmod.HybridSearch(cfg)                # no store: evals are personalized-free
 

@@ -75,7 +75,8 @@ Reach it via an ssh tunnel; auth is by password into an HttpOnly cookie.
 parser/   indexing pipeline (graph.py, parser.py, embedder.py, textclean.py, reindex.py, prompts)
 bot/      self-contained search bot (search, metrics store, panel, private chat)
 crawler/  collects pack links from a Telegram channel into parser/base-stickerpacks.txt
-tools/    dbsync.py - laptop <-> Google Drive <-> VDS database sync (3-way row merge)
+tools/    dbsync.py - laptop <-> Google Drive <-> VDS database sync (3-way row merge);
+          eval_search.py - offline search quality evals (hit@k, MRR, nDCG)
 deploy/   systemd units, deployment notes
 tests/    unittest suite (stdlib, no model download, no network)
 data/     stickers.db, bot_data.db, raw_captions.db (created at runtime, not in git)
@@ -90,6 +91,22 @@ python -m unittest discover -s tests
 Uses a tiny hash-based fake embedder and a synthetic DB, so the files stay small and
 CI never downloads the model. `python parser/reindex.py` rebuilds derived indexes of
 an existing DB (FTS; `--reembed` also recomputes vectors) - run it with the bot stopped.
+
+## Search evals
+
+`tools/eval_search.py` measures retrieval quality on a labelled query set: hit@k (a
+sticker from an expected pack made it into the top-k), MRR, recall@k and nDCG@k over
+packs.
+
+```bash
+cp evals/queries.example.jsonl evals/queries.jsonl    # then fill in your real pack names
+sqlite3 data/stickers.db "SELECT set_name, COUNT(*) FROM stickers GROUP BY set_name"
+python tools/eval_search.py --db data/stickers.db -k 10
+```
+
+Labels are JSONL, `#` lines are comments: `{"query": "sleeping cat", "packs": ["cozy_cats"]}`.
+Evals run without the bot and without personalization; `--model-dir`/`--emb-device` pass
+through the same way as for the bot.
 
 ## Config
 

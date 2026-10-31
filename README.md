@@ -4,14 +4,20 @@
 ![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/storage-SQLite%20%2B%20FTS5-003b57?logo=sqlite&logoColor=white)
 
-# stickersbot
+# 🔎 stickersbot
 
-Inline sticker search for Telegram.
-
-Allows to search stickers semantically: miltilingual support, typo tolerance.
-Type `@yourbot coffee` in any Telegram chat and choose a sticker from the results.
-
-<img src="docs/stickers.png" alt="stickersbot inline search results in Telegram" width="460">
+<table>
+  <tr>
+    <td width="40%">
+      <img src="docs/stickers.png" alt="stickersbot inline search results" width="100%">
+    </td>
+    <td width="60%" valign="middle">
+      <p>Inline sticker search for Telegram.</p>
+      <p>Allows to search stickers semantically: multilingual support, typo tolerance.</p>
+      <p>Type <code>@yourbot coffee</code> in any Telegram chat and choose a sticker from the results.</p>
+    </td>
+  </tr>
+</table>
 
 </div>
 

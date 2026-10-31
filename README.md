@@ -15,8 +15,6 @@ English captions with Russian queries too.
 
 </div>
 
-![Inline search](docs/screenshots/inline-search.png)
-
 ## Features
 
 - **Inline search everywhere.** `@bot query` in any chat; nothing to add, no commands.
@@ -64,16 +62,6 @@ emotions, style) by a text model, and embedded. Both the caption text and the ta
 FTS index, so `wolf`, `gray wolf` and `crying wolf` all hit; the embedding catches `hug` vs
 `обнимашки` and other paraphrases.
 
-## Screenshots
-
-| Inline search | Russian query |
-|---|---|
-| <img src="docs/screenshots/inline-search.png" width="420"> | <img src="docs/screenshots/inline-russian.png" width="420"> |
-
-| My packs | Sticker card |
-|---|---|
-| <img src="docs/screenshots/private-packs.png" width="420"> | <img src="docs/screenshots/sticker-card.png" width="420"> |
-
 ## Search quality
 
 Retrieval quality is measured offline with `tools/eval_search.py` on the labelled set:
@@ -91,8 +79,6 @@ The query mix is species (`fox`, `wolf`, `dragon`, …), emotions (`sad`, `heart
 `sunglasses`) and three Russian queries. Labels are made from the DB itself: a pack counts
 as expected when at least two of its stickers really show the theme (one for very narrow
 queries), so a single incidental mention never inflates the set.
-
-![Evals](docs/screenshots/evals.png)
 
 ## Quick start
 
@@ -140,8 +126,6 @@ picked up with `--requests-db`.
 (password → HttpOnly cookie, reachable via ssh tunnel): activity and CTR, a daily chart,
 description editing with instant re-embedding + audit log, user suggestions, pack requests
 and global boosts.
-
-![Admin panel](docs/screenshots/panel.png)
 
 ## Deployment
 

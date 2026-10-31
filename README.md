@@ -2,153 +2,166 @@
 
 # stickersbot
 
-**Inline sticker search for Telegram — by meaning, not just keywords.**
+Inline sticker search for Telegram.
 
-Type `@yourbot coffee` in any chat and pick a sticker from the grid.
-The index mixes full-text and multilingual embeddings, survives typos, and searches
-English captions with Russian queries too.
+Search by meaning, not just keywords: multilingual queries, typo tolerance, two retrieval channels.
+
+<img src="docs/stickers.png" alt="stickersbot inline search results in Telegram" width="760">
 
 [![CI](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml/badge.svg)](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/storage-SQLite%20%2B%20FTS5-003b57?logo=sqlite&logoColor=white)
-![Search](https://img.shields.io/badge/search-FTS5%20%2B%20MiniLM-7c3aed)
 
 </div>
 
-## Features
-
-- **Inline search everywhere.** `@bot query` in any chat; nothing to add, no commands.
-- **Two search channels.** SQLite FTS5 over tags and captions (bm25, porter stemming) plus
-  cosine similarity over 384-d MiniLM embeddings, fused with reciprocal rank fusion.
-- **Russian queries over English captions.** The dense channel is multilingual, so
-  `кофе` and `coffee` land on the same stickers.
-- **Typo tolerant.** Unknown words are corrected against the index vocabulary
-  (Damerau-Levenshtein) before hitting FTS.
-- **Your packs first.** Favorite packs are boosted in your own results; send a sticker or a
-  `t.me/addstickers/…` link and the whole pack gets queued into the index (10 packs/day).
-- **Sane result list.** At most 3 stickers of one pack in the top 10, NSFW is softly demoted
-  (and lifted for NSFW-intent queries), popular stickers get a small prior from real clicks.
-- **Panel included.** DAU/MAU/CTR with a daily chart, description editing with re-embedding,
-  user suggestions, pack requests and global boosts — one HTML file, no build step.
-- **Resumable indexing.** LangGraph pipeline with a caption cache and dedup by
-  `file_unique_id`: kill it any time, rerun and it continues where it stopped.
-
-## How it works
-
-```mermaid
-flowchart LR
-    subgraph idx ["indexing · parser, laptop + GPU"]
-        direction LR
-        A[pack list] --> B[Bot API<br/>download in memory]
-        B --> C[JoyCaption<br/>vision model]
-        C --> D[tagging LLM<br/>JSON]
-        D --> E[MiniLM<br/>384-d]
-        E --> DB[(stickers.db)]
-    end
-    subgraph srch ["search · bot, VDS"]
-        direction LR
-        Q([query]) --> FTS[FTS5 · bm25]
-        Q --> VEC[cosine · MiniLM]
-        DB -.-> FTS
-        DB -.-> VEC
-        FTS --> RRF[RRF fusion]
-        VEC --> RRF
-        RRF --> OUT[boosts · NSFW<br/>pack cap → inline answer]
-    end
-```
-
-A sticker is described by a vision model, turned into structured tags (characters, actions,
-emotions, style) by a text model, and embedded. Both the caption text and the tags feed the
-FTS index, so `coffee`, `cup of coffee` and `morning coffee` all hit; the embedding catches
-paraphrases and other languages (`кофе`).
-
-## Search quality
-
-Retrieval quality is measured offline with `tools/eval_search.py` on the labelled set:
-hit@k (an expected pack appears among the first k distinct packs of the returned 50),
-MRR, recall@k and nDCG@k — all at pack level, without personalization.
-
-On the production snapshot (**7 495 stickers, 162 packs**), 25 queries / 99 expected packs:
-
-| hit@10 | MRR | recall@10 | nDCG@10 |
-|:------:|:---:|:---------:|:-------:|
-| **1.00** | **0.60** | **0.69** | **0.53** |
-
-The mix spans actions (`waving`, `sleeping`, `playing video games`), emotions (`sad`),
-objects (`coffee`, `smartphone`, `sunglasses`) and three Russian queries. Labels are made from the DB itself: a pack counts
-as expected when at least two of its stickers really show the theme (one for very narrow
-queries), so a single incidental mention never inflates the set.
+Type `@yourbot coffee` in any Telegram chat and choose a sticker from the results.
 
 ## Quick start
 
-Only the bot, against an existing `data/stickers.db`:
+The bot reads its search index from `data/stickers.db`. Put an existing database there,
+or build one first — see [Indexing](#indexing). Then:
 
 ```bash
-git clone https://github.com/n0rdii/stickersbot.git
-cd stickersbot
+python -m venv .venv
+source .venv/bin/activate
 
-python -m venv .venv && source .venv/bin/activate
 pip install -r bot/requirements.txt
 
 echo "BOT_TOKEN=123456:ABC..." > .env
 python bot/bot.py
 ```
 
-Enable **inline mode** in @BotFather (`/setinline`) and turn on inline feedback, otherwise
-chosen-result events never arrive. The first start downloads the embedding model
-(~470 MB) into the Hugging Face cache; `MODEL_DIR` points at a local copy instead.
+Enable **Inline Mode** for your bot in [@BotFather](https://t.me/BotFather) with
+`/setinline`, and turn on inline feedback: chosen-result updates feed the click stats.
+On the first start the embedding model (~470 MB) is downloaded into the Hugging Face
+cache; set `MODEL_DIR` to use a local copy instead.
+
+## What it does
+
+- **Inline search:** `@bot query` in any chat, nothing to add.
+- **Hybrid retrieval:** SQLite FTS5 (BM25) and MiniLM embeddings, fused with reciprocal rank fusion.
+- **Multilingual search:** a Russian query finds stickers with English captions.
+- **Typo correction:** unknown words are checked against the index vocabulary before the full-text search.
+- **Pack preferences:** stickers from your favorite packs get a ranking boost. Send a sticker or a `t.me/addstickers/...` link to queue its pack for indexing (up to 10 packs per day).
+- **Result diversity:** no more than 3 stickers from one pack in the top 10.
+- **NSFW handling:** such stickers are demoted unless the query itself looks NSFW.
+- **Admin panel:** activity metrics, CTR, description editing, suggestions, pack requests and global boosts.
+- **Resumable indexing:** the LangGraph pipeline caches captions and deduplicates stickers by `file_unique_id`.
+
+## How search works
+
+```mermaid
+flowchart LR
+    Q[Query] --> FTS[FTS5 / BM25]
+    Q --> VEC[MiniLM embeddings]
+    DB[(stickers.db)] --> FTS
+    DB --> VEC
+    FTS --> RRF[RRF fusion]
+    VEC --> RRF
+    RRF --> R[Ranking and filters]
+    R --> A[Inline results]
+```
+
+During indexing, each sticker is processed by a vision model (JoyCaption). A text model
+turns the caption into structured tags — characters, actions, emotions, style — and MiniLM
+generates a 384-dimensional embedding. Both the caption and the tags feed the search index:
+
+- FTS5 handles exact terms and related word forms;
+- embeddings help with paraphrases and queries in other languages;
+- reciprocal rank fusion combines both lists before the ranking adjustments.
+
+## Search quality
+
+Search quality is evaluated offline with `tools/eval_search.py`. The evaluation uses
+labelled queries and measures hit@k, MRR, recall@k and nDCG@k at pack level, without
+personalization.
+
+Production snapshot: **7 495 stickers, 162 packs**. Evaluation set: 25 queries, 99 expected packs.
+
+| hit@10 | MRR | recall@10 | nDCG@10 |
+|:---:|:---:|:---:|:---:|
+| **1.00** | **0.60** | **0.69** | **0.53** |
+
+The set covers actions, emotions, objects and Russian-language queries. Labels are made
+from the database: a pack counts as relevant when several of its stickers really show the
+theme — 15–30 for broad character queries, 2 for most themes, 1 for very narrow ones.
+
+```bash
+cp evals/queries.example.jsonl evals/queries.jsonl   # then fill in your own pack names
+python tools/eval_search.py --db data/stickers.db -k 10
+```
+
+Labels are JSONL, `#` lines are comments: `{"query": "morning coffee", "packs": ["coffee_mugs"]}`.
 
 ## Indexing
+
+The pipeline lives in `parser/`. It downloads stickers in memory, captions them with
+JoyCaption, creates structured tags with a chat model, computes embeddings and appends
+everything to `data/stickers.db`. Environment variables are listed in
+[Configuration](#configuration); the parser needs `BOT_TOKEN`, `OPENROUTER_API_KEY` and a
+running `JOY_URL`.
 
 ```bash
 cd parser
 pip install -r ../bot/requirements.txt pillow langgraph
 
-# .env: BOT_TOKEN, OPENROUTER_API_KEY; JOY_URL points at the JoyCaption server
-python parser.py --limit 50    # trial run
-python parser.py               # full run, resumable
+python parser.py --limit 50    # small batch first
+python parser.py               # full pack list
 ```
 
-Stickers are downloaded in memory, captioned (JoyCaption via an OpenAI-compatible server,
-e.g. llama.cpp), tagged by a chat model (OpenRouter, or any OpenAI-compatible endpoint via
-`PP_URL`), embedded and appended to `data/stickers.db`. Progress is checkpointed in
-`data/raw_captions.db`. `parser/reindex.py` rebuilds derived indexes for an existing DB,
-`--reembed` also recomputes vectors.
+Indexing is resumable: progress is stored in `data/raw_captions.db`, so you can stop the
+process and run it again later.
 
-`crawler/crawler.py` harvests pack links from a Telegram channel into
-`parser/base-stickerpacks.txt`. Packs requested by users land in `data/bot_data.db` and are
-picked up with `--requests-db`.
+Other indexing tools:
+
+- `parser/reindex.py` rebuilds derived indexes for an existing database; `--reembed` also recomputes vectors.
+- `crawler/crawler.py` collects pack links from a Telegram channel into `parser/base-stickerpacks.txt`.
+- Packs requested by users are stored in `data/bot_data.db` and can be processed with `--requests-db`.
 
 ## Admin panel
 
-`PANEL_PASSWORD=... python bot/bot.py` serves a dark one-page panel on `127.0.0.1:8081`
-(password → HttpOnly cookie, reachable via ssh tunnel): activity and CTR, a daily chart,
-description editing with instant re-embedding + audit log, user suggestions, pack requests
-and global boosts.
+Set `PANEL_PASSWORD` before starting the bot:
+
+```bash
+PANEL_PASSWORD=your-password python bot/bot.py
+```
+
+The panel is served on `127.0.0.1:8081`: DAU, MAU and CTR with a daily chart, description
+editing with re-embedding and an audit log, user suggestions, pack requests and global
+ranking boosts. Auth is a password into an HttpOnly cookie; for remote access use an SSH
+tunnel rather than exposing the port.
 
 ## Deployment
 
-```
-laptop (parser + JoyCaption)  <--dbsync-->  Google Drive  <--dbsync-->  VDS (bot, systemd)
+```text
+laptop (parser + JoyCaption)  <-- dbsync -->  Google Drive  <-- dbsync -->  VDS (bot, systemd)
 ```
 
-`tools/dbsync.py` merges `stickers.db` three ways (new stickers from the laptop, description
-edits from the panel — both survive; conflicting rows: the VDS wins), with md5 +
-`PRAGMA quick_check` on every transfer and a backup before the swap. Pushing to `master`
-runs the test suite and deploys over SSH. Full walkthrough: [`deploy/README.md`](deploy/README.md).
+`tools/dbsync.py` performs a three-way merge of `stickers.db`: new stickers from the laptop
+and description edits made in the panel both survive, and when the same row conflicts the
+VDS version wins. Transfers are checked with MD5 and `PRAGMA quick_check`, and the previous
+database is kept as a backup before the swap.
 
-## Layout
+Pushing to `master` runs the test suite and deploys over SSH. Full walkthrough:
+[`deploy/README.md`](deploy/README.md).
 
-```
-parser/   indexing pipeline: graph.py (LangGraph), parser.py, embedder.py, textclean.py, prompts
-bot/      the bot itself: search, metrics store, panel, private chat, texts
-crawler/  pack link harvester for a Telegram channel
-tools/    dbsync.py (3-way DB sync), eval_search.py (offline search quality)
-deploy/   systemd units + deployment notes
-evals/    labelled query set for search evals (example template in git)
-tests/    unittest suite: stdlib only, fake embedder, no network, no model
-data/     stickers.db, bot_data.db, raw_captions.db (runtime, not in git)
-```
+## Configuration
+
+| Variable / file | Description |
+|---|---|
+| `.env` | `BOT_TOKEN`, `OPENROUTER_API_KEY`, `PANEL_PASSWORD` |
+| `JOY_URL`, `JOY_MODEL` | JoyCaption endpoint and model |
+| `PP_URL`, `OPENROUTER_MODEL`, `PP_REASONING` | postprocessor endpoint, model and reasoning setting (`PP_REASONING=off` disables reasoning) |
+| `AUTO_APPROVE_PACKS=1` | index user-submitted packs without panel approval |
+| `EMB_DEVICE` | embedding device: `cuda` or `cpu` |
+| `MODEL_DIR` | path to a local embedding model |
+| `dbsync.toml` | database sync settings; see `dbsync.example.toml` |
+
+Search ranking options: `python bot/bot.py --help`. That covers the answer size
+(`--top-k`, at most 50), candidate pools per channel (`--fts-top`, `--vec-top`), RRF
+weights (`--fts-weight`, `--vec-weight`; the dense channel is 1.5 by default), pack
+diversity (`--max-per-pack`, `--diverse-top`) and ranking adjustments (`--nsfw-penalty`,
+`--pop-weight`).
 
 ## Tests
 
@@ -156,20 +169,18 @@ data/     stickers.db, bot_data.db, raw_captions.db (runtime, not in git)
 python -m unittest discover -s tests
 ```
 
-87 tests and no heavy dependencies: a hash-based fake embedder and a synthetic DB keep CI
-fast and offline. Pre-commit runs the same suite plus formatting checks.
+87 tests on a fake embedder and a synthetic database: no model download, no network.
+The same suite runs in CI and in pre-commit (`uv tool run pre-commit run --all-files`).
 
-## Config
+## Project layout
 
-| Where | What |
-|---|---|
-| `.env` | `BOT_TOKEN`, `OPENROUTER_API_KEY`, `PANEL_PASSWORD` |
-| `JOY_URL`, `JOY_MODEL` | JoyCaption endpoint / model id |
-| `PP_URL`, `OPENROUTER_MODEL`, `PP_REASONING` | postprocessor endpoint / model; `PP_REASONING=off` disables reasoning (OpenRouter) |
-| `AUTO_APPROVE_PACKS=1` | index user packs without a panel click |
-| `EMB_DEVICE`, `MODEL_DIR` | embedder device (`cuda`/`cpu`) / local model copy |
-| `dbsync.toml` | backup/sync config, see `dbsync.example.toml` |
-
-Search knobs live in `python bot/bot.py --help`: `--top-k`, `--fts-top`, `--vec-top`
-(candidate pool per channel), `--fts-weight`/`--vec-weight` (RRF weights, dense is 1.5 by
-default), `--max-per-pack`, `--diverse-top`, `--nsfw-penalty`, `--pop-weight`.
+```text
+parser/   indexing pipeline, prompts and embedding code
+bot/      Telegram bot, search, metrics, admin panel and user flows
+crawler/  Telegram channel pack-link collector
+tools/    database sync and search evaluation
+deploy/   systemd units and deployment instructions
+evals/    labelled search evaluation set
+tests/    offline unittest suite
+data/     runtime databases (not tracked in git)
+```

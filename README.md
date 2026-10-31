@@ -4,7 +4,7 @@
 
 **Inline sticker search for Telegram — by meaning, not just keywords.**
 
-Type `@yourbot sleepy wolf` in any chat and pick a sticker from the grid.
+Type `@yourbot coffee` in any chat and pick a sticker from the grid.
 The index mixes full-text and multilingual embeddings, survives typos, and searches
 English captions with Russian queries too.
 
@@ -21,7 +21,7 @@ English captions with Russian queries too.
 - **Two search channels.** SQLite FTS5 over tags and captions (bm25, porter stemming) plus
   cosine similarity over 384-d MiniLM embeddings, fused with reciprocal rank fusion.
 - **Russian queries over English captions.** The dense channel is multilingual, so
-  `обнимашки` and `hug` land on the same stickers.
+  `кофе` and `coffee` land on the same stickers.
 - **Typo tolerant.** Unknown words are corrected against the index vocabulary
   (Damerau-Levenshtein) before hitting FTS.
 - **Your packs first.** Favorite packs are boosted in your own results; send a sticker or a
@@ -59,8 +59,8 @@ flowchart LR
 
 A sticker is described by a vision model, turned into structured tags (characters, actions,
 emotions, style) by a text model, and embedded. Both the caption text and the tags feed the
-FTS index, so `wolf`, `gray wolf` and `crying wolf` all hit; the embedding catches `hug` vs
-`обнимашки` and other paraphrases.
+FTS index, so `coffee`, `cup of coffee` and `morning coffee` all hit; the embedding catches
+paraphrases and other languages (`кофе`).
 
 ## Search quality
 
@@ -74,9 +74,8 @@ On the production snapshot (**7 495 stickers, 162 packs**), 25 queries / 99 expe
 |:------:|:---:|:---------:|:-------:|
 | **1.00** | **0.60** | **0.69** | **0.53** |
 
-The query mix is species (`fox`, `wolf`, `dragon`, …), emotions (`sad`, `hearts`), actions
-(`hug`, `sleeping`, `waving`, `playing video games`), objects (`coffee`, `smartphone`,
-`sunglasses`) and three Russian queries. Labels are made from the DB itself: a pack counts
+The mix spans actions (`waving`, `sleeping`, `playing video games`), emotions (`sad`),
+objects (`coffee`, `smartphone`, `sunglasses`) and three Russian queries. Labels are made from the DB itself: a pack counts
 as expected when at least two of its stickers really show the theme (one for very narrow
 queries), so a single incidental mention never inflates the set.
 

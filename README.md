@@ -6,7 +6,7 @@
 
 </div>
 
-<table>
+<table border="0" style="border: none; width: 100%;">
 <tr>
 <td width="43%" valign="middle">
 <img src="docs/stickers.png" width="100%" alt="stickersbot inline search results">

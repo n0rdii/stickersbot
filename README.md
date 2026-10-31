@@ -134,10 +134,10 @@ tunnel rather than exposing the port.
 ## Deployment
 
 ```text
-laptop (parser + JoyCaption)  <-- dbsync -->  Google Drive  <-- dbsync -->  VDS (bot, systemd)
+PC with GPU (parser + JoyCaption)  <-- dbsync -->  Google Drive  <-- dbsync -->  VDS (bot, systemd)
 ```
 
-`tools/dbsync.py` performs a three-way merge of `stickers.db`: new stickers from the laptop
+`tools/dbsync.py` performs a three-way merge of `stickers.db`: new stickers from the PC with GPU
 and description edits made in the panel both survive, and when the same row conflicts the
 VDS version wins. Transfers are checked with MD5 and `PRAGMA quick_check`, and the previous
 database is kept as a backup before the swap.

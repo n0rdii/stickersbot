@@ -1,20 +1,20 @@
 <div align="center">
+    
+[![CI](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml/badge.svg)](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)
+![SQLite](https://img.shields.io/badge/storage-SQLite%20%2B%20FTS5-003b57?logo=sqlite&logoColor=white)
 
 # stickersbot
 
 Inline sticker search for Telegram.
 
-Search by meaning, not just keywords: multilingual queries, typo tolerance, two retrieval channels.
+Allows to search stickers semantically: miltilingual support, typo tolerance.
+Type `@yourbot coffee` in any Telegram chat and choose a sticker from the results.
 
-<img src="docs/stickers.png" alt="stickersbot inline search results in Telegram" width="760">
-
-[![CI](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml/badge.svg)](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml)
-![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)
-![SQLite](https://img.shields.io/badge/storage-SQLite%20%2B%20FTS5-003b57?logo=sqlite&logoColor=white)
+<img src="docs/stickers.png" alt="stickersbot inline search results in Telegram" width="460">
 
 </div>
 
-Type `@yourbot coffee` in any Telegram chat and choose a sticker from the results.
 
 ## Quick start
 

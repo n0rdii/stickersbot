@@ -1,23 +1,29 @@
 <div align="center">
-    
+
 [![CI](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml/badge.svg)](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/storage-SQLite%20%2B%20FTS5-003b57?logo=sqlite&logoColor=white)
 
+</div>
+
+<table>
+<tr>
+<td width="43%" valign="middle">
+<img src="docs/stickers.png" width="100%" alt="stickersbot inline search results">
+</td>
+<td width="57%" valign="middle">
+
 # 🔎 stickersbot
 
-<div align="center">
-  <img src="docs/stickers.png" width="40%" align="left">
+**Inline sticker search for Telegram.**
 
-  <div>
-    <p>Inline sticker search for Telegram.</p>
-    <p>Semantic search with multilingual support and typo tolerance.</p>
-    <p>Type <code>@yourbot coffee</code> in any Telegram chat.</p>
-  </div>
-</div>
+Semantic search with multilingual support and typo tolerance.
 
-</div>
+Type `@yourbot coffee` in any Telegram chat and choose a sticker from the results.
 
+</td>
+</tr>
+</table>
 
 ## Quick start
 

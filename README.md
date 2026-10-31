@@ -6,18 +6,15 @@
 
 # 🔎 stickersbot
 
-<table>
-  <tr>
-    <td width="40%">
-      <img src="docs/stickers.png" alt="stickersbot inline search results" width="100%">
-    </td>
-    <td width="60%" valign="middle">
-      <p>Inline sticker search for Telegram.</p>
-      <p>Allows to search stickers semantically: multilingual support, typo tolerance.</p>
-      <p>Type <code>@yourbot coffee</code> in any Telegram chat and choose a sticker from the results.</p>
-    </td>
-  </tr>
-</table>
+<div align="center">
+  <img src="docs/stickers.png" width="40%" align="left">
+
+  <div>
+    <p>Inline sticker search for Telegram.</p>
+    <p>Semantic search with multilingual support and typo tolerance.</p>
+    <p>Type <code>@yourbot coffee</code> in any Telegram chat.</p>
+  </div>
+</div>
 
 </div>
 

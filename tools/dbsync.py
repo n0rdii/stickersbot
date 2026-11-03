@@ -1,8 +1,3 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["google-api-python-client>=2.100", "google-auth>=2.23"]
-# ///
-"""Sync the stickersbot SQLite databases between the laptop, Google Drive and the VDS."""
 from __future__ import annotations
 
 import argparse
@@ -32,12 +27,10 @@ class SyncError(RuntimeError):
     pass
 
 
-# ------------------------------------------------------------------ what is synced
 @dataclass(frozen=True)
 class Spec:
-    mode: str            # "merge" (two-way) or "owned" (one writer, the others read)
-    owner: str = ""      # for "owned": the side that writes it ("laptop" | "vds")
-
+    mode: str
+    owner: str = ""
 
 DBS = {
     "stickers": Spec("merge"),
@@ -50,17 +43,16 @@ def blob_name(name: str) -> str:
     return f"{name}.db.gz"
 
 
-# ------------------------------------------------------------------ config
 @dataclass
 class Config:
-    side: str = "laptop"                 # "laptop" | "vds"
-    remote: str = "drive"                # "drive" or "dir:/some/folder" (tests, shared mounts)
+    side: str = "laptop"
+    remote: str = "drive"
     folder_id: str = ""
     sa_file: str = ""
     sa_json: str = ""
     data_dir: Path = ROOT / "data"
-    stop_cmd: str = ""                   # run before the live stickers.db is replaced
-    start_cmd: str = ""                  # run afterwards (also after a failure)
+    stop_cmd: str = ""
+    start_cmd: str = ""
     keep_backups: int = 2
     extra: dict = field(default_factory=dict)
 
@@ -98,7 +90,6 @@ def load_config(path: str | None = None) -> Config:
     return cfg
 
 
-# ------------------------------------------------------------------ remotes
 @dataclass
 class RemoteInfo:
     md5: str
@@ -141,7 +132,7 @@ class DirRemote:
         tmp = self.dir / (name + ".part")
         shutil.copyfile(src, tmp)
         os.replace(tmp, self.dir / name)
-        return self.stat(name)                       # type: ignore[return-value]
+        return self.stat(name)
 
 
 class DriveRemote:
@@ -187,7 +178,7 @@ class DriveRemote:
     def _info(f: dict) -> RemoteInfo | None:
         size = int(f.get("size") or 0)
         if size == 0:
-            return None                              # an empty placeholder = nothing yet
+            return None
         return RemoteInfo(f.get("md5Checksum", ""), size, f.get("modifiedTime", ""))
 
     def init(self, names: list[str]) -> list[str]:
@@ -263,7 +254,7 @@ def make_remote(cfg: Config):
     return DriveRemote(cfg.folder_id, cfg.sa_file, cfg.sa_json)
 
 
-# ------------------------------------------------------------------ sqlite helpers
+
 def snapshot(src: Path, dst: Path) -> None:
     if not src.exists():
         raise SyncError(f"{src}: no such database")
@@ -322,11 +313,11 @@ def swap_in(live: Path, new: Path, keep: int = 2) -> None:
         for p in old[:-keep] if keep > 0 else old:
             p.unlink(missing_ok=True)
     for suffix in ("-wal", "-shm", "-journal"):
-        Path(str(live) + suffix).unlink(missing_ok=True)   # stale side files of the OLD file
+        Path(str(live) + suffix).unlink(missing_ok=True)
     os.replace(new, live)
 
 
-# ------------------------------------------------------------------ stickers: 3-way merge
+
 def _columns(db: sqlite3.Connection, table: str, schema: str = "main") -> list[str]:
     return [r[1] for r in db.execute(f"PRAGMA {schema}.table_info({table})")]
 
@@ -426,11 +417,11 @@ def merge_stickers(local: Path, remote: Path, base: dict | None, prefer: str) ->
                 continue
             bh = base.get(sid, (None, None))[1]
             if bh is None or (lh != bh and rh != bh):
-                res.conflicts += 1                 # changed on both sides (or no common base)
+                res.conflicts += 1
                 if prefer == "remote":
                     res.taken_remote += 1
                     todo.append(sid)
-            elif lh == bh:                         # only the remote changed it
+            elif lh == bh:
                 res.updated += 1
                 todo.append(sid)
 
@@ -461,7 +452,7 @@ def merge_stickers(local: Path, remote: Path, base: dict | None, prefer: str) ->
     return res
 
 
-# ------------------------------------------------------------------ state
+
 class State:
     def __init__(self, cfg: Config):
         self.path = cfg.work_dir / "state.json"
@@ -490,7 +481,7 @@ def run_cmd(cmd: str, what: str) -> None:
         raise SyncError(f"{what} failed (exit {r.returncode}): {cmd}")
 
 
-# ------------------------------------------------------------------ operations
+
 class Syncer:
     def __init__(self, cfg: Config, remote=None):
         self.cfg = cfg
@@ -527,12 +518,12 @@ class Syncer:
         name, cfg = "stickers", self.cfg
         live = cfg.db_path(name)
         base_file = cfg.work_dir / "stickers.base.sqlite"
-        prefer = "local" if cfg.side == "vds" else "remote"     # the VDS wins conflicts
+        prefer = "local" if cfg.side == "vds" else "remote"
         info = self.remote.stat(blob_name(name))
         st = self.state.get(name)
         base = load_base(base_file)
         snap = self.tmp / "local-snapshot.db"
-        if not live.exists():                                    # a fresh machine
+        if not live.exists():
             if info is None:
                 raise SyncError("stickers: neither a local nor a remote database exists yet")
             log.info("stickers: no local database - taking the remote one")
@@ -549,7 +540,7 @@ class Syncer:
         snapshot(live, snap)
         check_db(snap, "stickers")
 
-        if info is None:                                         # first ever upload
+        if info is None:
             msg = f"stickers: the remote is empty - uploading {live.name} as the first version"
             log.info(msg)
             if dry_run:
@@ -592,8 +583,8 @@ class Syncer:
                 swap_in(live, snap, cfg.keep_backups)
             finally:
                 run_cmd(cfg.start_cmd, "start")
-            final = self.tmp / "final.db"            # what we upload is a snapshot of the
-            snapshot(live, final)                    # LIVE file, never the file being written
+            final = self.tmp / "final.db"
+            snapshot(live, final)
         merged_hashes = row_hashes(final)
 
         if res.push_needed:
@@ -640,7 +631,7 @@ class Syncer:
         return f"{name}: pulled to {dest}"
 
 
-# ------------------------------------------------------------------ commands
+
 def cmd_status(cfg: Config, sy: Syncer) -> int:
     print(f"side: {cfg.side}   remote: {cfg.remote}   data: {cfg.data_dir}")
     for name, spec in DBS.items():

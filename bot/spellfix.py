@@ -1,4 +1,3 @@
-"""Typo correction for the FTS channel (Damerau-Levenshtein over the index vocabulary)."""
 from __future__ import annotations
 
 import bisect
@@ -6,8 +5,8 @@ import re
 from collections import Counter, defaultdict
 from typing import Callable
 
-MIN_LEN = 5               # at distance 1 a 4-letter word ("helo") has too many wrong neighbours
-MIN_COUNT = 2            # a word seen once is as likely OCR noise as a real word
+MIN_LEN = 5
+MIN_COUNT = 2
 _LATIN = re.compile(r"[a-z]+")
 
 
@@ -22,7 +21,7 @@ def osa(a: str, b: str, maxd: int) -> int:
         for j in range(1, len(b) + 1):
             v = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] != b[j - 1]))
             if i > 1 and j > 1 and a[i - 1] == b[j - 2] and a[i - 2] == b[j - 1]:
-                v = min(v, prev2[j - 2] + 1)          # swapped neighbours: "cheetha"
+                v = min(v, prev2[j - 2] + 1)
             cur[j] = v
             lo = min(lo, v)
         if lo > maxd:

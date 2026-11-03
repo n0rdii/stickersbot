@@ -1,4 +1,3 @@
-"""Index-time text cleanup shared by the FTS index and the embeddings."""
 from __future__ import annotations
 
 import re

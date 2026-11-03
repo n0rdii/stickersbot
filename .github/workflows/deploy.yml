@@ -18,7 +18,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      # the tests use a fake embedder: no torch / model download needed
       - name: Install test dependencies
         run: pip install aiogram numpy python-dotenv pillow telethon google-api-python-client google-auth langgraph
       - name: Unit tests
@@ -26,16 +25,12 @@ jobs:
 
   deploy:
     needs: test
-    # skipped until the server secrets exist and the DEPLOY_ENABLED repo variable is true
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # data/, .env, secrets/, .venv and dbsync.toml live next to the code on the server
-      # and are never touched. Only the code directories are replaced (the model directory
-      # and a legacy bot/.env inside bot/ are kept).
       - name: Clear old code on the server
         uses: appleboy/ssh-action@v1.0.3
         with:

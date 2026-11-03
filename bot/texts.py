@@ -1,6 +1,3 @@
-"""Every user-facing string of the bot's private chat lives in this module."""
-
-# ------------------------------------------------------------------ buttons
 BTN_MY_PACKS = "⭐ My packs"
 BTN_ADD = "➕ Add a pack"
 BTN_POPULAR = "🔥 Popular packs"
@@ -12,7 +9,7 @@ BTN_CARD_UNFAV = "🗑 Remove pack from favorites"
 BTN_CARD_ADD = "➕ Add this pack to search"
 BTN_CARD_EDIT = "✏️ Fix description"
 
-# ------------------------------------------------------------------ start / help
+
 START = (
     "🐾 <b>Hi there!</b> I find stickers in Telegram, the smart way! 🎨\n\n"
     "🔍 <b>Search</b>\n"
@@ -25,7 +22,7 @@ START = (
     "What shall we do first? ;)"
 )
 
-# ------------------------------------------------------------------ favorites
+
 FAV_HEAD = ("⭐ <b>Your favorite packs</b>\n\n"
             "Stickers from these packs always hop to the top of your search results! 🐇💨")
 FAV_EMPTY = ("\n\nIt's a bit empty in here…\n"
@@ -41,7 +38,7 @@ POPULAR_HEAD = ("🔥 <b>Popular packs</b>\n\n"
 POPULAR_EMPTY = ("\n\nNothing new to suggest right now 🐾\n"
                  "You already have all the popular ones - great taste! 😋")
 
-# ------------------------------------------------------------------ adding packs
+
 ADD_PROMPT = (
     "➕ <b>Add a pack</b>\n\n"
     "Send me any of these and I'll take care of the rest:\n"
@@ -70,7 +67,7 @@ PACK_BAD_NAME = ("🤔 That doesn't look like a pack name. It's letters, digits 
 NO_PACK = ("🥺 This sticker doesn't belong to a pack, so I can't look it up. "
            "Send one from a regular pack?")
 
-# ------------------------------------------------------------------ sticker card
+
 CARD_KNOWN = (
     "🐾 <b>Found it!</b> Sticker #{sid} from <b>{pack}</b>\n\n"
     "📝 <i>{description}</i>"
@@ -80,7 +77,7 @@ CARD_PACK_UNKNOWN = ("🔍 Ooh, I don't know <b>{pack}</b> yet!\n"
                      "Want me to take the whole pack into the search? 🐾")
 CARD_EXPIRED = "Oops, I lost track of that one 🙈 Send the sticker again?"
 
-# ------------------------------------------------------------------ descriptions
+
 DESC_ASK = (
     "✏️ <b>What does this sticker really show?</b>\n\n"
     "Now: <i>{description}</i>\n\n"
@@ -92,7 +89,7 @@ DESC_BAD = "Hmm, I need 10 to 300 characters 🐾 Try again? (/cancel to skip)"
 DESC_THANKS = "💖 Thank you! Got it (#{sug_id}) - that helps a lot! 🐾"
 DESC_ERROR = "🙈 Something went wrong on my side, please try again in a bit."
 
-# ------------------------------------------------------------------ misc
+
 CANCELLED = "Okie, cancelled! 🐾"
 NOTHING_TO_CANCEL = "Nothing to cancel 🐾"
 FALLBACK = ("I speak sticker! Send me a sticker or a pack link - or use me inline: "

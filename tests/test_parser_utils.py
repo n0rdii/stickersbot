@@ -1,4 +1,3 @@
-"""tests for parser/parser.py helpers (no network, no model)."""
 import base64
 import asyncio
 import io
@@ -13,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "parser"))
 
-import parser as parser_mod  # noqa: E402  (parser/parser.py)
+import parser as parser_mod
 
 
 class TestParsePackNames(unittest.TestCase):
@@ -26,7 +25,7 @@ class TestParsePackNames(unittest.TestCase):
             "@tg_4\n"
             "tg_1\n"
             "not a pack line\n"
-            "https://t.me/addstickers/TG_4\n"      # case-insensitive dup
+            "https://t.me/addstickers/TG_4\n"
         )
         self.assertEqual(parser_mod.parse_pack_names(text),
                          ["tg_1", "tg_2", "tg_3", "tg_4", "TG_4"])
@@ -45,7 +44,7 @@ class TestParseJsonRecord(unittest.TestCase):
         rec = parser_mod.parse_json_record(raw)
         self.assertEqual(rec["description"], "a sleepy wolf")
         self.assertEqual(rec["characters"], ["wolf"])
-        self.assertEqual(rec["actions"], ["sleeping"])      # a single string becomes a list
+        self.assertEqual(rec["actions"], ["sleeping"])
         self.assertIs(rec["nsfw"], False)
 
     def test_garbage_raises(self):
@@ -62,7 +61,7 @@ class TestCleanList(unittest.TestCase):
     def test_dedupes_normalizes_and_caps(self):
         out = parser_mod.clean_list(["A  b", "a b", 5, "a  b", ["x"]])
         self.assertEqual(out, ["A b"])
-        self.assertEqual(parser_mod.clean_list(["x"] * 40), ["x"])   # dedupe is case-insensitive
+        self.assertEqual(parser_mod.clean_list(["x"] * 40), ["x"])
         self.assertEqual(len(parser_mod.clean_list([f"p{i:02}" for i in range(40)])), 30)
 
 
@@ -96,7 +95,7 @@ class TestPrepareImage(unittest.TestCase):
         self.assertEqual(out.mode, "RGB")
         self.assertLessEqual(out.width, 512)
         px = out.getpixel((5, 5))
-        self.assertGreaterEqual(sum(px[:3]), 600)            # no black corners
+        self.assertGreaterEqual(sum(px[:3]), 600)
 
 
 class _Response:
@@ -126,8 +125,6 @@ class _Session:
 
 
 class TestPostprocessEndpoint(unittest.TestCase):
-    """The postprocessor talks to any OpenAI-compatible endpoint; a local one
-    (Ollama) needs no OpenRouter key."""
 
     def go(self, coro):
         return asyncio.run(coro)
@@ -140,7 +137,7 @@ class TestPostprocessEndpoint(unittest.TestCase):
         self.assertEqual(self.go(parser_mod.postprocess(s, cfg, "cap", "x")),
                          parser_mod.parse_json_record(valid))
         self.assertEqual(s.url, cfg.pp_url)
-        self.assertIsNone(s.headers)                          # no Authorization header
+        self.assertIsNone(s.headers)
 
     def test_default_points_at_openrouter(self):
         self.assertIn("openrouter.ai", parser_mod.parse_args([]).pp_url)

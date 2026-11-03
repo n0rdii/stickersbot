@@ -1,4 +1,3 @@
-"""Rebuild the derived indexes of an existing stickers.db (FTS; --reembed also redoes vectors)."""
 from __future__ import annotations
 
 import argparse
@@ -132,7 +131,7 @@ def main(argv=None) -> None:
         emb = Embedder(args.model_dir, max_len=128, threads=os.cpu_count() or 1,
                        device=args.emb_device or None)
         log.info("re-embedded %d stickers", reembed(db, emb))
-    db.execute("VACUUM")                 # the dropped FTS table left free pages behind
+    db.execute("VACUUM")
     db.execute("PRAGMA optimize")
     db.close()
     log.info("done. Restart the bot so it reloads the embedding matrix.")

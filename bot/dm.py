@@ -1,4 +1,3 @@
-"""Private-chat side of the bot: favorite packs, adding packs, sticker cards."""
 from __future__ import annotations
 
 import asyncio
@@ -22,9 +21,9 @@ log = logging.getLogger("bot.dm")
 
 dm_router = Router()
 
-PACKS_PAGE = 8                   # rows per page of the favorites / popular lists
-MODE_TTL = 900                   # seconds a "send me the pack / the text" prompt stays armed
-MAX_PACK_REQUESTS_PER_DAY = 10   # new packs one user may ask for per 24h (silent limit)
+PACKS_PAGE = 8
+MODE_TTL = 900
+MAX_PACK_REQUESTS_PER_DAY = 10
 PACK_NAME_RE = re.compile(r"[A-Za-z0-9_]{3,64}")
 LINK_RE = re.compile(r"(?:t|telegram)\.me/addstickers/([A-Za-z0-9_]{3,64})", re.IGNORECASE)
 
@@ -83,7 +82,6 @@ async def _edit(cb: CallbackQuery, text: str, kb: InlineKeyboardBuilder | None =
             log.info("edit failed: %s", e)
 
 
-# ------------------------------------------------------------------ keyboards / views
 def main_kb() -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
     kb.row(Btn(text=T.BTN_MY_PACKS, callback_data="m:fav:0"),
@@ -121,7 +119,7 @@ async def popular_view(store, uid: int, page: int):
     page = max(0, page)
     names, more = await asyncio.to_thread(store.popular_packs, uid, page * PACKS_PAGE,
                                           PACKS_PAGE)
-    if not names and page > 0:                       # the last page emptied out
+    if not names and page > 0:
         return await popular_view(store, uid, page - 1)
     kb = InlineKeyboardBuilder()
     for name in names:
@@ -145,11 +143,10 @@ def card_kb(is_fav: bool, pack_known: bool, sid: int | None) -> InlineKeyboardBu
     return kb
 
 
-# ------------------------------------------------------------------ adding a pack
 async def add_pack(bot: Bot, store, engine, uid: int, name: str,
                    auto_approve: bool = False) -> dict:
     info = await asyncio.to_thread(engine.pack_info, name)
-    if info:                                         # already searchable: just favorite it
+    if info:
         ok = await asyncio.to_thread(store.add_pref, uid, info["name"])
         return {"status": "indexed", "title": info["title"], "count": info["count"],
                 "fav_full": not ok}
@@ -195,7 +192,6 @@ async def _do_add(msg: Message, bot: Bot, store, engine, cfg, uid: int, name: st
     return ok
 
 
-# ------------------------------------------------------------------ handlers
 is_private = F.chat.type == ChatType.PRIVATE
 
 
@@ -256,7 +252,7 @@ async def cb_unfav(cb: CallbackQuery, store):
         await asyncio.to_thread(store.remove_pref, uid, pack)
         await cb.answer(T.FAV_REMOVED.format(name=pack))
     else:
-        await cb.answer()                         # already gone - just redraw
+        await cb.answer()
     text, kb = await fav_view(store, uid, page)
     await _edit(cb, text, kb)
 
@@ -337,9 +333,9 @@ async def h_sticker(m: Message, bot: Bot, store, engine, cfg):
     set_name = st.set_name or ""
     mode = _get_mode(uid)
     if not PACK_NAME_RE.fullmatch(set_name):
-        await _say(m, T.NO_PACK)                     # (a pending prompt stays armed)
+        await _say(m, T.NO_PACK)
         return
-    if mode and mode[0] == "add_pack":               # "send me a sticker from the pack"
+    if mode and mode[0] == "add_pack":
         _modes.pop(uid, None)
         await _do_add(m, bot, store, engine, cfg, uid, set_name)
         return
@@ -367,16 +363,16 @@ async def h_text(m: Message, bot: Bot, store, engine, cfg):
     text = (m.text or "").strip()
     mode = _get_mode(uid)
 
-    if (link := LINK_RE.search(text)):               # a pack link works any time
+    if (link := LINK_RE.search(text)):
         if mode and mode[0] == "add_pack":
             _modes.pop(uid, None)
         await _do_add(m, bot, store, engine, cfg, uid, link.group(1))
         return
 
-    if mode and mode[0] == "add_pack":               # plain short name
+    if mode and mode[0] == "add_pack":
         name = text.lstrip("@")
         if not PACK_NAME_RE.fullmatch(name):
-            await _say(m, T.PACK_BAD_NAME)           # stay armed
+            await _say(m, T.PACK_BAD_NAME)
             return
         _modes.pop(uid, None)
         await _do_add(m, bot, store, engine, cfg, uid, name)

@@ -1,4 +1,4 @@
-"""Inline sticker search bot for Telegram (FTS5 + embeddings, usage metrics, admin panel)."""
+
 from __future__ import annotations
 
 import argparse
@@ -18,13 +18,13 @@ import numpy as np
 from aiogram import Bot, Dispatcher, Router
 from aiogram.types import ChosenInlineResult, InlineQuery, InlineQueryResultCachedSticker
 
-ROOT = Path(__file__).resolve().parent.parent        # repository root
-HERE = Path(__file__).resolve().parent               # bot dir (self-sufficient for a VDS)
-sys.path.insert(0, str(HERE))                        # so `import embedder` resolves inside bot/
+ROOT = Path(__file__).resolve().parent.parent
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
 
-from spellfix import SpellFixer  # noqa: E402  (bot/spellfix.py)
-from dm import dm_router  # noqa: E402  (bot/dm.py: the private-chat experience)
-from textclean import FTS_COLUMNS, index_description  # noqa: E402  (bot/textclean.py)
+from spellfix import SpellFixer
+from dm import dm_router
+from textclean import FTS_COLUMNS, index_description
 
 log = logging.getLogger("bot")
 
@@ -33,8 +33,8 @@ try:
 except ImportError:
     pass
 else:
-    load_dotenv(HERE / ".env")                       # bot/.env (works both on the VDS and locally)
-    load_dotenv(ROOT / "parser" / ".env")            # locally - the parser's shared .env (BOT_TOKEN)
+    load_dotenv(HERE / ".env")
+    load_dotenv(ROOT / "parser" / ".env")
     load_dotenv()
 
 
@@ -63,26 +63,25 @@ def build_fts_queries(text: str) -> tuple[str, str] | None:
     return " AND ".join(parts), " OR ".join(parts)
 
 
-# ------------------------------------------------------------------ hybrid search
 class HybridSearch:
 
-    RRF_K = 60          # standard RRF constant smoothing the rank weights
+    RRF_K = 60
 
     def __init__(self, cfg, store=None):
         self.db = sqlite3.connect(str(Path(cfg.db).resolve()), check_same_thread=False)
-        self.db.execute("PRAGMA busy_timeout=5000")   # the parser may write concurrently
-        self.db.isolation_level = None                # explicit short transactions
-        self.top_k = max(1, min(50, cfg.top_k))       # answerInlineQuery allows 50 results
+        self.db.execute("PRAGMA busy_timeout=5000")
+        self.db.isolation_level = None
+        self.top_k = max(1, min(50, cfg.top_k))
         self.fts_top, self.vec_top = cfg.fts_top, cfg.vec_top
         self.fts_weight, self.vec_weight = cfg.fts_weight, cfg.vec_weight
         self.hide_nsfw = cfg.hide_nsfw
         self.pref_boost = cfg.pref_boost
-        self.max_per_pack = max(0, cfg.max_per_pack)  # 0 = no pack diversification
+        self.max_per_pack = max(0, cfg.max_per_pack)
         self.diverse_top = max(1, cfg.diverse_top)
-        self.pop_weight = max(0.0, cfg.pop_weight)    # 0 = no popularity prior
+        self.pop_weight = max(0.0, cfg.pop_weight)
         self.nsfw_penalty = cfg.nsfw_penalty          # nsfw score multiplier = (1 - penalty)
-        self.nsfw_share = cfg.nsfw_share_threshold    # >= this NSFW share in top-10 = nsfw query
-        self._lock = threading.RLock()                # one connection over several threads
+        self.nsfw_share = cfg.nsfw_share_threshold
+        self._lock = threading.RLock()
 
         rows = self.db.execute("SELECT id, emb FROM stickers").fetchall()
         if not rows:
@@ -91,14 +90,14 @@ class HybridSearch:
         self._pos = {int(sid): i for i, sid in enumerate(self._ids)}
         self._m = np.stack([np.frombuffer(r[1], dtype=np.float32) for r in rows])
 
-        from embedder import Embedder                # bot/embedder.py: the bot is self-sufficient
+        from embedder import Embedder
         self.emb = Embedder(cfg.model_dir, max_len=128, threads=os.cpu_count() or 1,
                             device=cfg.emb_device or None)
         if self._m.shape[1] != self.emb.dim:
             raise SystemExit(
                 f"the DB holds embeddings of dim={self._m.shape[1]}, the model gives {self.emb.dim} - "
                 f"the DB is not from this model; refresh the DB or point --model-dir at that model")
-        self.store = store                # metrics & pack prefs (may be None: plain search)
+        self.store = store
 
         fts_cols = [r[1] for r in self.db.execute("PRAGMA table_info(fts_stickers)")]
         self._bm25 = ", ".join(repr(float(FTS_WEIGHTS.get(c, 1.0))) for c in fts_cols)
@@ -112,7 +111,6 @@ class HybridSearch:
                  len(rows), self.emb.dim, self.emb.model_id,
                  f"{len(self._spell.words)} words" if self._spell else "off")
 
-    # ---------------------------------------------------------------- search
     def _fts_known(self, tok: str, prefix: bool) -> bool:
         q = f'"{tok}"*' if prefix else f'"{tok}"'
         try:
@@ -120,7 +118,7 @@ class HybridSearch:
                 "SELECT 1 FROM fts_stickers WHERE fts_stickers MATCH ? LIMIT 1", (q,)
             ).fetchone() is not None
         except sqlite3.OperationalError:
-            return True                       # when in doubt do not "fix" anything
+            return True
 
     def _build_spellfixer(self) -> SpellFixer:
         words: Counter = Counter()
@@ -138,7 +136,7 @@ class HybridSearch:
 
     def _fts_ranked(self, text: str) -> list[int]:
         if self._spell:
-            fixed = self._spell.correct_query(text)       # FTS only; dense keeps the original
+            fixed = self._spell.correct_query(text)
             if fixed != text:
                 log.debug("spellfix: %r -> %r", text, fixed)
                 text = fixed
@@ -166,10 +164,10 @@ class HybridSearch:
     def search(self, text: str, user_id: int = 0) -> list[dict]:
         prefs = (self.store.user_prefs(user_id) if self.store and user_id else set()) \
             if self.store else set()
-        prefs_fold = {p.casefold() for p in prefs}   # match pack names case-insensitively
+        prefs_fold = {p.casefold() for p in prefs}
         boosts = self.store.global_boosts() if self.store else {}   # {pack.casefold(): weight}
         pop = self.store.sticker_popularity() if self.store and self.pop_weight else {}
-        qvec = self.emb.query(text)                  # encode BEFORE taking the lock
+        qvec = self.emb.query(text)
         with self._lock:
             scores: dict[int, float] = defaultdict(float)
 
@@ -182,7 +180,7 @@ class HybridSearch:
                 idx = np.argpartition(-sims, kth)[: self.vec_top]
                 idx = idx[np.argsort(-sims[idx])]
                 for rank, i in enumerate(idx):
-                    if float(sims[i]) < 0.05:        # beyond the cutoff - noise
+                    if float(sims[i]) < 0.05:
                         break
                     scores[int(self._ids[i])] += self.vec_weight / (self.RRF_K + rank)
 
@@ -205,13 +203,13 @@ class HybridSearch:
                 if r is None:
                     continue
                 if r[4] and not nsfw_intent:
-                    sc *= (1.0 - self.nsfw_penalty)  # soft demotion, not a filter
+                    sc *= (1.0 - self.nsfw_penalty)
                 if boosts and (w := boosts.get((r[5] or "").casefold())) is not None and w != 1.0:
-                    sc *= w                          # global admin-boosted pack (panel)
+                    sc *= w
                 if prefs_fold and (r[5] or "").casefold() in prefs_fold:
                     sc *= self.pref_boost
                 if pop and (n := pop.get(sid)):
-                    sc *= 1.0 + self.pop_weight * math.log1p(n)   # users picked it: nudge up
+                    sc *= 1.0 + self.pop_weight * math.log1p(n)
                 adjusted[sid] = sc
             final = sorted(adjusted, key=lambda sid: -adjusted[sid])
 
@@ -236,19 +234,18 @@ class HybridSearch:
                     rest.append(item)
             return (head + rest)[: self.top_k]
 
-    # ------------------------------------------------- description editing (admin / approved)
     def apply_description(self, sid: int, text: str, editor: str = "panel") -> str:
         text = " ".join(str(text).split())[:1000]
         if len(text) < 10:
             raise ValueError("description too short (min 10 characters)")
-        indexed = index_description(text) or text    # FTS + embedding see the cleaned text
-        vec = self.emb.query(indexed)                # encode outside the lock
+        indexed = index_description(text) or text
+        vec = self.emb.query(indexed)
         with self._lock:
             row = self.db.execute("SELECT description FROM stickers WHERE id=?", (sid,)).fetchone()
             if row is None:
                 raise KeyError(f"sticker id={sid} is not in the index")
             old = row[0]
-            self.db.execute("BEGIN IMMEDIATE")   # stickers row + FTS row update together
+            self.db.execute("BEGIN IMMEDIATE")
             try:
                 self.db.execute(
                     "UPDATE stickers SET description=?, emb=? WHERE id=?",
@@ -305,7 +302,6 @@ class HybridSearch:
             self.db.close()
 
 
-# ------------------------------------------------------------------ telegram
 router = Router()
 
 
@@ -318,7 +314,7 @@ class SearchLogger:
     def push(self, user_id: int, text: str) -> None:
         old = self._pending.pop(user_id, None)
         if old:
-            old[1].cancel()                       # superseded by a newer keystroke
+            old[1].cancel()
         task = asyncio.get_running_loop().create_task(self._later(user_id, text))
         self._pending[user_id] = (text, task)
 
@@ -327,7 +323,7 @@ class SearchLogger:
             await asyncio.sleep(self.settle)
         cur = self._pending.get(user_id)
         if cur and cur[1] is asyncio.current_task():
-            del self._pending[user_id]            # from here on it can no longer be cancelled
+            del self._pending[user_id]
         await self._write(user_id, text)
 
     async def _write(self, user_id: int, text: str) -> None:
@@ -350,7 +346,7 @@ class SearchLogger:
 @router.inline_query()
 async def h_inline(q: InlineQuery, engine: HybridSearch, cfg, search_log: SearchLogger):
     text = (q.query or "").strip()
-    if len(text) < 2:                                # hasn't started typing yet
+    if len(text) < 2:
         await q.answer(results=[], cache_time=1, is_personal=False)
         return
     try:
@@ -359,20 +355,19 @@ async def h_inline(q: InlineQuery, engine: HybridSearch, cfg, search_log: Search
         log.exception("search for %r failed", text)
         await q.answer(results=[], cache_time=1, is_personal=False)
         return
-    search_log.push(q.from_user.id, text)            # logged once the user stops typing
+    search_log.push(q.from_user.id, text)
     if not results:
         await q.answer(results=[], cache_time=cfg.cache_time, is_personal=False)
         return
     items = [InlineQueryResultCachedSticker(
         id=str(r["sid"]), sticker_file_id=r["file_id"]) for r in results]
-    # result id = stickers.id: ChosenInlineResult maps back even with Telegram's own caching
     await q.answer(results=items, cache_time=cfg.cache_time, is_personal=True)
 
 
 @router.chosen_inline_result()
 async def h_chosen(cr: ChosenInlineResult, engine: HybridSearch, store,
                    search_log: SearchLogger):
-    await search_log.flush(cr.from_user.id)          # the search event goes first
+    await search_log.flush(cr.from_user.id)
     sid, set_name = None, None
     try:
         info = await asyncio.to_thread(engine.get_sticker, int(cr.result_id))
@@ -387,7 +382,7 @@ async def h_chosen(cr: ChosenInlineResult, engine: HybridSearch, store,
 
 
 async def main(cfg):
-    from store import Store                     # bot/store.py
+    from store import Store
 
     store = await asyncio.to_thread(Store, cfg.prefs_db)
     engine = await asyncio.to_thread(HybridSearch, cfg, store)
@@ -414,7 +409,7 @@ async def main(cfg):
     try:
         await dp.start_polling(bot)
     finally:
-        await search_log.close()                     # flush queries still waiting to settle
+        await search_log.close()
         await bot.session.close()
         await asyncio.to_thread(engine.close)
 

@@ -1,20 +1,29 @@
+<table border="0" style="border: none; width: 100%;">
+<tr>
+<td width="43%" valign="middle">
+<img src="docs/stickers.png" width="100%" alt="stickersbot inline search results">
+</td>
+<td width="57%" valign="middle">
+
+# 🔎 stickersbot
+
+**Inline sticker search for Telegram.**
+
+Semantic search with multilingual support and typo tolerance.
+
+Type `@yourbot coffee` in any Telegram chat and choose a sticker from the results.
+
+</td>
+</tr>
+</table>
+
 <div align="center">
-
-# stickersbot
-
-Inline sticker search for Telegram.
-
-Search by meaning, not just keywords: multilingual queries, typo tolerance, two retrieval channels.
-
-<img src="docs/stickers.png" alt="stickersbot inline search results in Telegram" width="760">
 
 [![CI](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml/badge.svg)](https://github.com/n0rdii/stickersbot/actions/workflows/deploy.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white)
 ![SQLite](https://img.shields.io/badge/storage-SQLite%20%2B%20FTS5-003b57?logo=sqlite&logoColor=white)
 
 </div>
-
-Type `@yourbot coffee` in any Telegram chat and choose a sticker from the results.
 
 ## Quick start
 
@@ -134,10 +143,10 @@ tunnel rather than exposing the port.
 ## Deployment
 
 ```text
-laptop (parser + JoyCaption)  <-- dbsync -->  Google Drive  <-- dbsync -->  VDS (bot, systemd)
+PC with GPU (parser + JoyCaption)  <-- dbsync -->  Google Drive  <-- dbsync -->  VDS (bot, systemd)
 ```
 
-`tools/dbsync.py` performs a three-way merge of `stickers.db`: new stickers from the laptop
+`tools/dbsync.py` performs a three-way merge of `stickers.db`: new stickers from the PC with GPU
 and description edits made in the panel both survive, and when the same row conflicts the
 VDS version wins. Transfers are checked with MD5 and `PRAGMA quick_check`, and the previous
 database is kept as a backup before the swap.

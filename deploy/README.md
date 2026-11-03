@@ -39,7 +39,9 @@ downloads the master `stickers.db` from Drive by itself - so upload it from the 
 (section 2). The embedding model downloads into the HF cache on the first start (~470 MB).
 
 GitHub secrets: `SERVER_HOST`, `SERVER_USER` (root, or a user allowed to run systemctl without
-a password), `SSH_PRIVATE_KEY`.
+a password), `SSH_PRIVATE_KEY`. The deploy job is skipped until the repo variable
+`DEPLOY_ENABLED=true` is set, so a repo without a server still gets a green workflow:
+`gh variable set DEPLOY_ENABLED --body true` after adding the secrets.
 
 ## What the sync guarantees
 * `stickers.db` is merged row by row against the last synced state: new stickers from the

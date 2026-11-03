@@ -26,6 +26,8 @@ jobs:
 
   deploy:
     needs: test
+    # skipped until the server secrets exist and the DEPLOY_ENABLED repo variable is true
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo

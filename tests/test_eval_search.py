@@ -1,4 +1,3 @@
-"""tools/eval_search.py: metric math and label parsing (no DB, no model)."""
 import math
 import sys
 import tempfile
@@ -8,8 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-import eval_search as ev  # noqa: E402
-from test_search import make_db  # noqa: E402  (synthetic DB + fake embedder helper)
+import eval_search as ev
+from test_search import make_db
 
 
 def res(*packs):
@@ -30,7 +29,7 @@ class TestQueryMetrics(unittest.TestCase):
         m = ev.query_metrics(res("x", "x", "y"), {"z"}, k=10)
         self.assertEqual((m["hit"], m["rr"], m["recall"]), (0.0, 0.0, 0.0))
         m = ev.query_metrics(res("x", "x", "y"), {"y"}, k=10)
-        self.assertAlmostEqual(m["rr"], 0.5)          # repeated pack counts once
+        self.assertAlmostEqual(m["rr"], 0.5)
 
     def test_cutoff(self):
         self.assertEqual(ev.query_metrics(res("a", "b", "c"), {"c"}, k=2)["hit"], 0.0)

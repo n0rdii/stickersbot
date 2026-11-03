@@ -1,4 +1,3 @@
-"""Admin panel: aiohttp server in a bot thread + single-page JS frontend."""
 from __future__ import annotations
 
 import asyncio
@@ -14,13 +13,13 @@ COOKIE = "panel_token"
 DIR = Path(__file__).parent
 DAY = 86400
 PACK_RE = re.compile(r"[A-Za-z0-9_]{3,64}")
-LOGIN_MAX_FAILS = 5            # wrong passwords from one IP ...
-LOGIN_WINDOW = 300             # ... within this many seconds lock that IP for the rest of it
+LOGIN_MAX_FAILS = 5
+LOGIN_WINDOW = 300
 
 
 def start_panel(engine, store, host: str, port: int, password: str) -> threading.Thread | None:
     try:
-        import aiohttp  # noqa: F401
+        import aiohttp
     except ImportError:
         return None
     t = threading.Thread(target=_serve, args=(engine, store, host, port, password),
@@ -34,8 +33,8 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
 
     app = web.Application()
     app["engine"], app["store"] = engine, store
-    app["sessions"] = set()        # tokens currently logged in (lost on restart - fine)
-    fails: dict[str, list[float]] = {}   # ip -> monotonic times of recent failed logins
+    app["sessions"] = set()
+    fails: dict[str, list[float]] = {}
     static_html = (DIR / "panel.html").read_text(encoding="utf-8")
     static_js = (DIR / "panel.js").read_text(encoding="utf-8")
 
@@ -50,7 +49,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
 
     app.middlewares.append(auth_middleware)
 
-    # ------------------------------------------------------------------ static
+
     async def home(_request):
         return web.Response(text=static_html, content_type="text/html",
                             headers={"Cache-Control": "no-cache"})
@@ -59,7 +58,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
         return web.Response(text=static_js, content_type="application/javascript",
                             headers={"Cache-Control": "no-cache"})
 
-    # -------------------------------------------------------------------- auth
+
     async def login(request):
         data = await _json_body(request)
         if data is None or not isinstance(data.get("password"), str):
@@ -67,14 +66,14 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
         ip = request.remote or "?"
         now = time.monotonic()
         recent = [t for t in fails.get(ip, []) if now - t < LOGIN_WINDOW]
-        if len(recent) >= LOGIN_MAX_FAILS:         # locked: even the right password waits
+        if len(recent) >= LOGIN_MAX_FAILS:
             wait = int(LOGIN_WINDOW - (now - recent[0])) + 1
             return web.json_response({"error": f"too many attempts, retry in {wait}s"},
                                      status=429, headers={"Retry-After": str(wait)})
         if not hmac.compare_digest(data["password"].encode(), password.encode()):
             await asyncio.sleep(0.3)
             fails[ip] = recent + [now]
-            if len(fails) > 1000:                  # keep the table bounded
+            if len(fails) > 1000:
                 for k in [k for k, v in fails.items() if now - v[-1] >= LOGIN_WINDOW]:
                     del fails[k]
             return web.json_response({"error": "wrong password"}, status=401)
@@ -96,7 +95,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
         authed = request.cookies.get(COOKIE, "") in app["sessions"]
         return web.json_response({"authed": bool(authed)})
 
-    # ---------------------------------------------------------------- dashboard
+
     async def stats(_request):
         s = await asyncio.to_thread(app["store"].stats)
         return web.json_response(s)
@@ -110,7 +109,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
         return web.json_response(
             await asyncio.to_thread(app["store"].search_history, page, size))
 
-    # ---------------------------------------------------------------- stickers
+
     async def search(request):
         q = (request.query.get("q") or "").strip()
         if len(q) < 2:
@@ -139,7 +138,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
         except ValueError as e:
             return web.json_response({"error": str(e)}, status=400)
 
-    # -------------------------------------------------------------- suggestions
+
     async def suggestions(_request):
         rows = await asyncio.to_thread(app["store"].pending_suggestions)
         out = []
@@ -181,7 +180,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
         await asyncio.to_thread(app["store"].decide_suggestion, sug_id, False)
         return web.json_response({"ok": True})
 
-    # ------------------------------------------------------- global pack boosts
+
     async def boosts(_request):
         names = await asyncio.to_thread(app["engine"].set_names)
         fold = {n.casefold() for n in names}
@@ -214,7 +213,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
             return web.json_response({"error": "boost not found"}, status=404)
         return web.json_response({"ok": True})
 
-    # ------------------------------------------------------------- pack requests
+
     async def pack_requests(_request):
         names = await asyncio.to_thread(app["engine"].set_names)
         fold = {n.casefold() for n in names}
@@ -233,7 +232,7 @@ def _serve(engine, store, host: str, port: int, password: str) -> None:
             return web.json_response({"error": "request not found"}, status=404)
         return web.json_response({"ok": True})
 
-    # ------------------------------------------------------------------ helpers
+
     async def _json_body(request):
         try:
             data = json.loads((await request.text()) or "{}")

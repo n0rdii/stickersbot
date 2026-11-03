@@ -1,4 +1,3 @@
-"""Search tests: FTS/ranking/logging over a synthetic DB with a fake embedder."""
 import asyncio
 import hashlib
 import re
@@ -13,8 +12,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "parser"))
-sys.path.insert(0, str(ROOT / "bot"))          # bot/ first: textclean + (fake) embedder
-
+sys.path.insert(0, str(ROOT / "bot"))
 DIM = 384
 
 
@@ -115,7 +113,7 @@ class FtsQuery(unittest.TestCase):
 
     def test_unfinished_short_tail_dropped(self):
         self.assertEqual(self.q("wolf wi"), ('"wolf"', '"wolf"'))
-        self.assertEqual(self.q("kn"), ('"kn"*', '"kn"*'))          # the only word is kept
+        self.assertEqual(self.q("kn"), ('"kn"*', '"kn"*'))
 
     def test_only_stopwords_kept(self):
         self.assertEqual(self.q("the"), ('"the"*', '"the"*'))
@@ -326,7 +324,6 @@ class DmFlows(unittest.TestCase):
     def buttons(kb):
         return [b for row in kb.inline_keyboard for b in row]
 
-    # ---------------------------------------------------------------- the voice
     def test_no_text_mentions_moderation(self):
         bad = re.compile(r"moderat|review|approv|admin|queue|owner|verif", re.I)
         for name, text in self.T.all_texts().items():
@@ -345,7 +342,6 @@ class DmFlows(unittest.TestCase):
         self.T.PACK_ADDED.format(title="t", count=1)
         self.T.CARD_KNOWN.format(sid=1, pack="p", description="d")
 
-    # ---------------------------------------------------------- adding a pack
     def test_add_known_pack_just_favorites_it(self):
         res = self.go(self.dm.add_pack(self.bot, self.store, self.engine, 1, "WOLFPACK"))
         self.assertEqual(res["status"], "indexed")
@@ -477,7 +473,6 @@ class DmFlows(unittest.TestCase):
         self.assertTrue(self.store.remove_pref(1, "PACK1"))             # case-insensitive
         self.assertTrue(self.store.add_pref(1, "one_too_many"))
 
-    # --------------------------------------------------------- sticker cards
     def sticker(self, set_name="wolfpack", uid="u1"):
         return types.SimpleNamespace(set_name=set_name, file_unique_id=uid)
 
@@ -485,7 +480,7 @@ class DmFlows(unittest.TestCase):
         m = self.Msg(sticker=self.sticker(uid="u2"))
         self.go(self.dm.h_sticker(m, self.bot, self.store, self.engine, self.cfg))
         text, kb = m.sent[0]
-        self.assertIn("&lt;b&gt;wolf&lt;/b&gt; &amp; friends", text)    # user-ish text is escaped
+        self.assertIn("&lt;b&gt;wolf&lt;/b&gt; &amp; friends", text)
         self.assertEqual(sorted(b.callback_data for b in self.buttons(kb)),
                          ["card:edit:2", "card:fav", "m:fav:0"])
 
@@ -608,12 +603,12 @@ class PanelServer(unittest.TestCase):
 
     def test_2_non_ascii_password_is_401_not_500(self):
         self.assertEqual(self.post_login("пароль")[0], 401)
-        self.assertEqual(self.post_login("pässword")[0], 200)            # non-ASCII right one works
+        self.assertEqual(self.post_login("pässword")[0], 200)
 
     def test_3_login_lockout_after_repeated_failures(self):
         for _ in range(5):
             self.assertEqual(self.post_login("wrong")[0], 401)
-        code, headers = self.post_login("pässword")                      # right password, locked
+        code, headers = self.post_login("pässword")
         self.assertEqual(code, 429)
         self.assertTrue(int(headers["Retry-After"]) > 0)
 
@@ -646,9 +641,9 @@ class SearchLoggerTests(unittest.TestCase):
             lg = botmod.SearchLogger(rec, 5.0)
             lg.push(1, "cheetah")
             lg.push(2, "wolf")
-            await lg.flush(1)                                        # user 1 chose a result
+            await lg.flush(1)
             before = list(rec.rows)
-            await lg.close()                                         # shutdown flushes the rest
+            await lg.close()
             return before, rec.rows
         before, after = self.run_async(go())
         self.assertEqual(before, [(1, "cheetah")])
@@ -687,7 +682,7 @@ class SearchLoggerTests(unittest.TestCase):
         self.assertEqual(rows[0], (9, "fox waving", 2, "packb"))
         self.assertEqual(rows[1][2], None)
         self.assertEqual(store.db.execute("SELECT query FROM search_events").fetchall(),
-                         [("fox waving",)])                          # search event written first
+                         [("fox waving",)])
         eng.close()
 
 
@@ -714,10 +709,10 @@ class Reindex(unittest.TestCase):
         self.assertEqual(db.execute("SELECT actions FROM fts_stickers WHERE rowid=1").fetchone()[0],
                          "yawning")
         self.assertIn("idle pose", db.execute("SELECT description FROM stickers WHERE id=1")
-                      .fetchone()[0])                                              # source intact
+                      .fetchone()[0])
         self.assertEqual(db.execute("SELECT count(*) FROM stickers s JOIN fts_stickers f "
                                     "ON f.rowid=s.id").fetchone()[0], 2)
-        self.assertEqual(reindex.rebuild_fts(db), 2)                               # idempotent
+        self.assertEqual(reindex.rebuild_fts(db), 2)
         db.close()
 
     def test_reembed_uses_cleaned_text_and_keeps_dim_guard(self):

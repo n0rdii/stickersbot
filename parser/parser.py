@@ -1,4 +1,3 @@
-"""Sticker indexing pipeline (runs on your local GPU machine)."""
 import argparse
 import asyncio
 import base64
@@ -35,20 +34,19 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS stickers(
   id INTEGER PRIMARY KEY,
   file_unique_id TEXT UNIQUE NOT NULL,
-  file_id TEXT NOT NULL,                 -- Bot API file_id for InlineQueryResultCachedSticker
+  file_id TEXT NOT NULL,
   set_name TEXT, set_title TEXT, emoji TEXT, kind TEXT,
   description TEXT,
   characters TEXT, objects TEXT, actions TEXT, emotions TEXT,
-  visual_tags TEXT, style_tags TEXT,     -- JSON arrays
+  visual_tags TEXT, style_tags TEXT,
   nsfw INTEGER DEFAULT 0,
-  emb BLOB NOT NULL,                     -- float32[dim] from description, L2-normalized
+  emb BLOB NOT NULL,
   added_ts INTEGER);
 CREATE TABLE IF NOT EXISTS skipped(file_unique_id TEXT PRIMARY KEY, reason TEXT, ts INTEGER);
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
 """
 
 
-# ------------------------------------------------------------------ data
 @dataclass
 class Item:
     uid: str
@@ -141,9 +139,8 @@ def prepare_image(raw: bytes) -> str:
     return base64.b64encode(out.getvalue()).decode()
 
 
-# ------------------------------------------------------------------ network
 class QuotaExhausted(Exception):
-    """OpenRouter is out of credits (HTTP 402): not retryable, stops the whole run."""
+    pass
 
 
 class TgSource:
@@ -278,9 +275,8 @@ async def postprocess(session, cfg, pp_prompt: str, caption: str, uid: str = "")
     raise ValueError(f"postprocessing produced no valid JSON: {last}")
 
 
-# ------------------------------------------------------------------ database
 def open_db(path: str) -> sqlite3.Connection:
-    db = sqlite3.connect(path, check_same_thread=False)   # default journal: one file, rsync-friendly
+    db = sqlite3.connect(path, check_same_thread=False)
     cols = {r[1] for r in db.execute("PRAGMA table_info(stickers)")}
     if cols and "description" not in cols:
         raise SystemExit(f"{path}: old schema (from embed.py). Use a new DB file: --db new.db")
@@ -302,7 +298,6 @@ def save_batch(db, emb, batch: list[Item], counters: dict, model_name: str):
             counters["rejected"] += 1
     ok = [it for it in batch if not it.reject]
     if ok:
-        # embedding input must be the same cleaned text FTS indexes
         vecs = emb.passages([index_description(it.rec["description"]) or it.rec["description"]
                              for it in ok], batch=len(ok))
         for it, v in zip(ok, vecs):
@@ -326,7 +321,7 @@ def save_batch(db, emb, batch: list[Item], counters: dict, model_name: str):
     db.commit()
 
 
-# ---------------------------------------------------------------- pipeline
+
 async def reporter(counters, t0):
     while True:
         await asyncio.sleep(30)
@@ -352,7 +347,7 @@ async def run(cfg, tg=None, emb=None):
     tg = tg or TgSource(os.environ["BOT_TOKEN"])
 
     for p in (cfg.db, cfg.raw_cache):
-        Path(p).parent.mkdir(parents=True, exist_ok=True)   # data/ etc. if missing
+        Path(p).parent.mkdir(parents=True, exist_ok=True)
     db = open_db(cfg.db)
     if (row := db.execute("SELECT value FROM meta WHERE key='dim'").fetchone()) \
             and int(row[0]) != emb.dim:
@@ -388,7 +383,7 @@ async def run(cfg, tg=None, emb=None):
             await graph.ainvoke({}, config={"recursion_limit": 64})
         finally:
             rep.cancel()
-            await flush()                     # drain the persist buffer if anything is left
+            await flush()
             total = db.execute("SELECT COUNT(*) FROM stickers").fetchone()[0]
             set_meta(db, "count", total)
             db.commit()
@@ -407,8 +402,8 @@ async def run(cfg, tg=None, emb=None):
 
 
 def parse_args(argv=None):
-    here = Path(__file__).resolve().parent       # parser/ dir with the input files
-    root = here.parent                           # repository root: ./data for the DBs
+    here = Path(__file__).resolve().parent
+    root = here.parent
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--packs", default=str(here / "base-stickerpacks.txt"))
     ap.add_argument("--db", default=str(root / "data" / "stickers.db"))

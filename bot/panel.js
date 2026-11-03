@@ -1,12 +1,10 @@
 "use strict";
-/* stickersbot admin frontend. Vanilla JS (no framework, no build step).
- * Talks to the aiohttp API in bot/panel.py; the chart is hand-rolled SVG. */
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, cls, text) => {
   const n = document.createElement(tag);
   if (cls) n.className = cls;
-  if (text != null) n.textContent = text;   // textContent -> no HTML injection
+  if (text != null) n.textContent = text;
   return n;
 };
 const svgEl = (tag, attrs) => {
@@ -23,7 +21,7 @@ const fmtTime = (ts) => {
 const SERIES_COLORS = ["#5794f2", "#ff9830", "#73bf69", "#f2495c", "#fade2a"];
 const GRID = "#23252c", AXIS = "#8e929b";
 
-/* ------------------------------------------------------------------ api */
+
 async function api(path, opts = {}) {
   if (opts.body != null && typeof opts.body === "object") {
     opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers);
@@ -36,14 +34,14 @@ async function api(path, opts = {}) {
   return body;
 }
 
-/* ------------------------------------------------------------------ toast */
+
 function toast(msg, kind = "ok") {
   const t = el("div", `toast ${kind}`, msg);
   $("toast").append(t);
   setTimeout(() => t.remove(), 3000);
 }
 
-/* ------------------------------------------------------- chart (Grafana-style) */
+
 function niceCeil(v) {
   if (v <= 1) return 1;
   const p = Math.pow(10, Math.floor(Math.log10(v)));
@@ -61,7 +59,7 @@ function renderChart(mount, dates, series) {
   const py = (v) => padT + (H - padT - padB) * (1 - v / maxV);
   const svg = svgEl("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
 
-  // horizontal grid + y-axis labels (5 ticks: 0 .. maxV)
+
   for (let s = 0; s <= 4; s++) {
     const v = maxV * s / 4, y = py(v);
     svg.append(svgEl("line", { x1: padL, x2: W - padR, y1: y, y2: y,
@@ -72,7 +70,7 @@ function renderChart(mount, dates, series) {
     svg.append(lbl);
   }
 
-  // x labels: at most ~7 date marks (MM-DD, from 'YYYY-MM-DD')
+
   const each = n ? Math.ceil(n / 7) : 1;
   for (let i = 0; i < n; i += each) {
     const lbl = svgEl("text", { x: px(i), y: H - 8, "text-anchor": "middle",
@@ -81,7 +79,7 @@ function renderChart(mount, dates, series) {
     svg.append(lbl);
   }
 
-  // areas (12% fill) and lines
+
   for (let si = 0; si < series.length; si++) {
     const s = series[si], color = s.color || SERIES_COLORS[si % SERIES_COLORS.length];
     if (!n) continue;
@@ -99,7 +97,7 @@ function renderChart(mount, dates, series) {
       cx: px(0), cy: py(s.data[0] || 0), r: 3, fill: color }));
   }
 
-  // hover crosshair + dots + tooltip (created lazily, moved on pointermove)
+
   const rule = svgEl("line", { y1: padT, y2: H - padB, stroke: "#555b66",
                                "stroke-width": 1, "stroke-dasharray": "3 3",
                                visibility: "hidden" });
@@ -152,7 +150,7 @@ function renderChart(mount, dates, series) {
   mount.append(svg);
 }
 
-/* ------------------------------------------------------------------ tabs */
+
 const TABS = ["dashboard", "stickers", "boosts", "suggestions", "packs"];
 const state = { tab: "dashboard" };
 let lastStats = null;
@@ -171,12 +169,12 @@ function route() {
   if (state.tab === "packs") loadPackRequests();
 }
 
-/* ------------------------------------------------------------ dashboard */
+
 async function loadDashboard() {
   try {
     const [s, hist] = await Promise.all([
       api("/api/stats"),
-      api("/api/queries?page=1"),          // recent queries, page 1
+      api("/api/queries?page=1"),
     ]);
     lastStats = s;
     const cards = $("cards");
@@ -222,7 +220,7 @@ async function loadDashboard() {
   }
 }
 
-/* ------------------------------------ recent queries table (paginated) */
+
 const qPager = { page: 1, pages: 1 };
 
 async function loadQueries(page) {
@@ -262,7 +260,7 @@ function renderQueries(hist) {
   }
 }
 
-/* ------------------------------------------------------------- stickers */
+
 async function runSearch() {
   const q = $("q").value.trim();
   if (q.length < 2) { toast("type at least 2 characters", "err"); return; }
@@ -291,8 +289,8 @@ async function runSearch() {
   }
 }
 
-/* edit dialog */
-let editing = null;                     // the sticker row shown in the dialog
+
+let editing = null;
 
 function openEditor(it) {
   editing = it;
@@ -314,13 +312,13 @@ async function saveEditor() {
               { method: "POST", body: { description: $("dlgText").value } });
     closeEditor();
     toast("saved, embedding regenerated");
-    runSearch();                        // refresh descriptions on screen
+    runSearch();
   } catch (e) {
     toast(e.message, "err");
   }
 }
 
-/* ------------------------------------------------------------------ boosts */
+
 const PACK_OK = /^[A-Za-z0-9_]{3,64}$/;
 
 async function loadBoosts() {
@@ -399,7 +397,7 @@ async function addBoost() {
   }
 }
 
-/* ---------------------------------------------------------- suggestions */
+
 async function loadSuggestions() {
   const box = $("suggList");
   try {
@@ -443,7 +441,7 @@ async function decide(id, approve, _btn) {
   }
 }
 
-/* ------------------------------------------------------------ pack requests */
+
 async function loadPackRequests() {
   const tb = $("packRows");
   try {
@@ -509,7 +507,7 @@ async function decidePack(pack, approve) {
   }
 }
 
-/* ----------------------------------------------------------------- auth */
+
 function showLogin() {
   $("login").hidden = false;
   $("app").hidden = true;
@@ -542,7 +540,7 @@ async function doLogout() {
   showLogin();
 }
 
-/* ----------------------------------------------------------------- boot */
+
 window.addEventListener("hashchange", route);
 $("loginBtn").addEventListener("click", doLogin);
 $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") doLogin(); });

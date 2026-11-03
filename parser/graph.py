@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-"""The indexing pipeline as a LangGraph graph: fan out, then caption -> postprocess -> persist."""
 import asyncio
 import logging
 import time
@@ -20,15 +18,10 @@ class St(TypedDict, total=False):
 
 def build_pipeline(cfg, tg, session, emb, db, cache, raw_cache, packs, known,
                    counters, stop, joy_prompt, pp_prompt):
-    """Each new sticker travels its own branch: scan fans out with Send, nodes
-    update the Item in place and hand it further via Command(goto=...), so
-    parallel branches never write to a shared channel.
-
-    Returns (compiled graph, flush) - call flush() once the graph has finished."""
     sem_dl = asyncio.Semaphore(max(1, cfg.dl_concurrency))
     sem_joy = asyncio.Semaphore(max(1, cfg.joy_concurrency))
     sem_pp = asyncio.Semaphore(max(1, cfg.pp_concurrency))
-    # an item holds a decoded image from download until the caption call: keep that window bounded
+
     flight = asyncio.Semaphore(max(4, cfg.dl_concurrency + cfg.joy_concurrency * 4))
     buf: list[P.Item] = []
     flush_lock = asyncio.Lock()
@@ -82,7 +75,7 @@ def build_pipeline(cfg, tg, session, emb, db, cache, raw_cache, packs, known,
             log.info("pack %s: %d new of %d", name, new, len(s.stickers))
         if not pending:
             return Command()
-        if stop.is_set():                     # quota hit while scanning: the tail is already lost
+        if stop.is_set():
             counters["dropped"] += len(pending)
             return Command()
         return Command(goto=[Send("caption", {"item": it}) for it in pending])
@@ -94,7 +87,7 @@ def build_pipeline(cfg, tg, session, emb, db, cache, raw_cache, packs, known,
             return Command()
         async with flight:
             try:
-                if it.uid in raw_cache:       # caption already cached - the file is not needed
+                if it.uid in raw_cache:
                     it.raw_caption = raw_cache[it.uid]
                     return Command(goto=[Send("postprocess", {"item": it})])
                 async with sem_dl:

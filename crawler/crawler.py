@@ -1,4 +1,3 @@
-"""Collects sticker packs from a public Telegram channel into base-stickerpacks.txt."""
 from __future__ import annotations
 
 import argparse
@@ -16,10 +15,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 log = logging.getLogger("crawler")
 
-TG_PAGE = re.compile(r"data-post=\"[^\"]+?(\d+)\"")   # the data-post="@channel/123" attribute
+TG_PAGE = re.compile(r"data-post=\"[^\"]+?(\d+)\"")
 PACK_RE = re.compile(r"(?:t|telegram)\.me/addstickers/([A-Za-z0-9_]+)")
 UA = {"User-Agent": "Mozilla/5.0 (stickerpacks-crawler; +https://core.telegram.org)"}
-SESSION = ROOT / "crawler" / "tgsession"             # telethon appends ".session"
+SESSION = ROOT / "crawler" / "tgsession"
 
 MTPROTO_HOWTO = (
     "MTProto fallback skipped: it needs a user session (bots cannot read channel history).\n"
@@ -94,7 +93,7 @@ def crawl(channel: str, max_pages: int, pause: float) -> tuple[list[str], bool]:
             log.warning("the web preview %s has no posts: the channel is private, deleted, "
                         "or not a channel at all (user/bot)", url)
         if cur_min is None or (min_seen is not None and cur_min >= min_seen):
-            break                                        # no older posts left
+            break
         posts_seen = True
         min_seen = cur_min
         if n + 1 < max_pages:
@@ -103,7 +102,7 @@ def crawl(channel: str, max_pages: int, pause: float) -> tuple[list[str], bool]:
         log.info("stopped after max-pages=%d pages", max_pages)
     out: list[str] = []
     seen: set[str] = set()
-    for page in reversed(pages):                         # oldest posts -> newest
+    for page in reversed(pages):
         for name in page:
             if name.lower() not in seen:
                 seen.add(name.lower())
@@ -132,7 +131,7 @@ def tg_credentials() -> tuple[int, str]:
 
 def mtproto_available() -> bool:
     try:
-        import telethon  # noqa: F401
+        import telethon
     except ImportError:
         return False
     try:
@@ -161,9 +160,9 @@ async def crawl_mtproto_async(channel: str, max_posts: int, pause: float,
     else:
         client = TelegramClient(str(SESSION), api_id, api_hash)
 
-    ordered: list = []                    # str names and ("set", set_id) placeholders
-    unresolved: dict[int, tuple[int, int]] = {}   # set_id -> (id, access_hash)
-    resolved: dict[int, str] = {}                 # set_id -> short_name
+    ordered: list = []
+    unresolved: dict[int, tuple[int, int]] = {}
+    resolved: dict[int, str] = {}
 
     async def resolve(sid: int, shash: int) -> str:
         for attempt in (1, 2, 3):
@@ -217,7 +216,7 @@ async def crawl_mtproto_async(channel: str, max_posts: int, pause: float,
                 try:
                     resolved[sid] = await resolve(*unresolved[sid])
                     log.debug("set %d resolved -> %s", sid, resolved[sid])
-                except Exception as e:                # deleted set etc. - do not lose the rest
+                except Exception as e:
                     log.warning("cannot resolve sticker set %d: %r", sid, e)
                 if resolve_pause:
                     await asyncio.sleep(resolve_pause)
@@ -228,7 +227,7 @@ async def crawl_mtproto_async(channel: str, max_posts: int, pause: float,
         await asyncio.gather(*(resolve_one(sid) for sid in list(unresolved)))
     finally:
         await client.disconnect()
-    out: list[str] = []                               # oldest posts -> newest, like the web mode
+    out: list[str] = []
     seen: set[str] = set()
     for item in reversed(ordered):
         name = item if isinstance(item, str) else resolved.get(item[1], "")

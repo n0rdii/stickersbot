@@ -1,4 +1,3 @@
-"""tools/dbsync.py: snapshot/merge/sync logic against a folder remote."""
 import os
 import sqlite3
 import sys
@@ -10,8 +9,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "parser"))
 
-import dbsync  # noqa: E402
-from textclean import FTS_COLUMNS, fts_create_sql, fts_values  # noqa: E402
+import dbsync
+from textclean import FTS_COLUMNS, fts_create_sql, fts_values
 
 SCHEMA = """
 CREATE TABLE stickers(id INTEGER PRIMARY KEY, file_unique_id TEXT UNIQUE NOT NULL,
@@ -124,7 +123,7 @@ class Sync(unittest.TestCase):
         out = self.vds.sync()
         self.assertIn("+1 new", out)
         self.assertEqual(desc(self.vds.db(), 4), "purple cat sleeping")
-        self.assertEqual(fts_hits(self.vds.db(), "purple"), [4])        # FTS row came along
+        self.assertEqual(fts_hits(self.vds.db(), "purple"), [4])
         self.assertEqual(self.vds.restarts()[len(marks_before):], ["stop", "start"])
         n = len(self.vds.restarts())
         self.assertIn("up to date", self.vds.sync())
@@ -133,12 +132,12 @@ class Sync(unittest.TestCase):
     def test_vds_edit_and_laptop_rows_are_both_kept(self):
         self.bootstrap()
         edit(self.vds.db(), 2, "a very blue wolf howling")
-        self.assertIn("uploaded", self.vds.sync())            # the edit goes up
+        self.assertIn("uploaded", self.vds.sync())
         db = sqlite3.connect(self.laptop.db())
         add_row(db, 4, "yellow duck")
         db.commit()
         db.close()
-        out = self.laptop.sync()                              # laptop: merge + push
+        out = self.laptop.sync()
         self.assertIn("uploaded", out)
         self.assertEqual(desc(self.laptop.db(), 2), "a very blue wolf howling")
         self.assertEqual(desc(self.laptop.db(), 4), "yellow duck")
@@ -151,7 +150,7 @@ class Sync(unittest.TestCase):
         self.bootstrap()
         edit(self.vds.db(), 1, "vds says fox")
         edit(self.laptop.db(), 1, "laptop says fox")
-        self.vds.sync()                                        # vds uploads first
+        self.vds.sync()
         out = self.laptop.sync()
         self.assertIn("1 conflicts", out)
         self.assertEqual(desc(self.laptop.db(), 1), "vds says fox")
@@ -226,7 +225,7 @@ class Sync(unittest.TestCase):
         self.assertIn("fresh machine", self.vds.sync())
         self.assertEqual(desc(self.vds.db(), 2), "a blue wolf")
         self.assertIn("up to date", self.vds.sync())
-        self.assertEqual(self.vds.restarts(), [])              # nothing was running
+        self.assertEqual(self.vds.restarts(), [])
 
     def test_corrupt_remote_is_refused(self):
         self.bootstrap()
@@ -255,16 +254,16 @@ class OneWay(unittest.TestCase):
         db.close()
         sy = self.laptop.sy()
         self.addCleanup(sy.close)
-        with self.assertRaises(dbsync.SyncError):                 # wrong side pushes
+        with self.assertRaises(dbsync.SyncError):
             sy.push("bot_data")
         sv = self.vds.sy()
         self.addCleanup(sv.close)
-        with self.assertRaises(dbsync.SyncError):                 # nothing to pull yet
+        with self.assertRaises(dbsync.SyncError):
             sy.pull("bot_data")
         self.assertIn("pushed", sv.push("bot_data"))
-        with self.assertRaises(dbsync.SyncError):                 # vds must not pull over its data
+        with self.assertRaises(dbsync.SyncError):
             sv.pull("bot_data")
-        self.assertIn("unchanged", sv.push("bot_data", if_changed=True))   # no re-upload
+        self.assertIn("unchanged", sv.push("bot_data", if_changed=True))
         self.assertIn("pulled", sy.pull("bot_data"))
         got = sqlite3.connect(self.laptop.db("bot_data")).execute(
             "SELECT pack, status FROM pack_requests").fetchall()

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-"""Offline search eval: hit@k, MRR, recall@k and nDCG@k over a labelled query set."""
 import argparse
 import json
 import logging
@@ -10,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "bot"))
 
-import bot as botmod  # noqa: E402  (bot/bot.py)
+import bot as botmod
 
 
 def ranked_packs(results: list[dict]) -> list[str]:
@@ -68,9 +66,9 @@ def main():
     args, rest = ap.parse_known_args()
 
     logging.basicConfig(level=args.log_level.upper(), format="%(message)s")
-    cfg = botmod.parse_args(rest + ["--top-k", "50"])   # packs are ranked over the full answer
+    cfg = botmod.parse_args(rest + ["--top-k", "50"])
     queries = load_labels(args.labels)
-    search = botmod.HybridSearch(cfg)                # no store: evals are personalized-free
+    search = botmod.HybridSearch(cfg)
 
     total = {"hit": 0.0, "rr": 0.0, "recall": 0.0, "ndcg": 0.0}
     print(f"{'query':32} {'hit':>4} {'rr':>6} {'rec@' + str(args.k):>7} {'ndcg@' + str(args.k):>8}")

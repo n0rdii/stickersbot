@@ -1,4 +1,3 @@
-"""smoke test: the full indexing graph runs end-to-end on fakes (no network, no model)."""
 import asyncio
 import io
 import json
@@ -14,8 +13,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "parser"))
 
-import parser as parser_mod  # noqa: E402  (parser/parser.py)
-import graph as graph_mod    # noqa: E402  (parser/graph.py, needs langgraph)
+import parser as parser_mod
+import graph as graph_mod
 
 
 def _png_bytes():
@@ -76,7 +75,6 @@ class _Resp:
 
 
 class _Session:
-    """serves JoyCaption at :8080 and the postprocessor (Ollama-style) at :11434."""
 
     def post(self, url, json=None, headers=None):
         if ":11434" in url:
@@ -105,7 +103,6 @@ class TestIndexGraph(unittest.TestCase):
             cache = sqlite3.connect(str(Path(tmp) / "raw.db"))
             cache.execute("CREATE TABLE IF NOT EXISTS raw"
                           "(uid TEXT PRIMARY KEY, caption TEXT, ts INTEGER)")
-            # one caption cached beforehand, and it is spicy: that sticker must be rejected
             raw_cache = {"pack_a_u2": "a spicy pose of a wolf"}
             counters = {k: 0 for k in ("saved", "rejected", "failed", "dup", "no_thumb",
                                        "packs_bad", "captioned", "dropped")}
@@ -123,10 +120,10 @@ class TestIndexGraph(unittest.TestCase):
             known = set()
             asyncio.run(go(packs, known, session))
 
-            self.assertEqual(counters["saved"], 4)          # all four land in stickers
+            self.assertEqual(counters["saved"], 4)
             self.assertEqual(counters["rejected"], 0)
             self.assertEqual(counters["failed"], 0)
-            self.assertEqual(counters["captioned"], 3)      # the cached one is not re-captioned
+            self.assertEqual(counters["captioned"], 3)
             self.assertEqual(tg.downloaded, 3)
             self.assertEqual(db.execute("SELECT COUNT(*) FROM stickers").fetchone()[0], 4)
             self.assertEqual(db.execute("SELECT nsfw FROM stickers WHERE file_unique_id=?",
@@ -141,7 +138,6 @@ class TestIndexGraph(unittest.TestCase):
                              "mn")
             self.assertEqual(cache.execute("SELECT COUNT(*) FROM raw").fetchone()[0], 3)
 
-            # resumable run: the same packs again -> everything counts as known, nothing saved
             asyncio.run(go(packs, known, session))
             self.assertEqual(counters["dup"], 4)
             self.assertEqual(counters["saved"], 4)

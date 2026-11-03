@@ -1,4 +1,3 @@
-"""Embeddings for the bot (a copy of parser/embedder.py: the bot l...."""
 from pathlib import Path
 
 import numpy as np
@@ -21,9 +20,9 @@ class Embedder:
 
         local_dir = Path(model_dir)
         if local_dir.is_dir():
-            self.model = SentenceTransformer(str(local_dir), device=device)   # local copy
+            self.model = SentenceTransformer(str(local_dir), device=device)
         else:
-            self.model = SentenceTransformer(MODEL_ID, device=device)         # fetch/cache from HF Hub
+            self.model = SentenceTransformer(MODEL_ID, device=device)
         self.model.max_seq_length = max_len
         self.model.eval()
         self.model_id = MODEL_ID

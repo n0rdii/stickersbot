@@ -1,4 +1,3 @@
-"""Writable bot data: usage metrics, pack preferences, pack requests, description suggestions."""
 from __future__ import annotations
 
 import hashlib
@@ -7,8 +6,8 @@ import threading
 import time
 
 DAY = 86400
-MAX_PREFS = 100                    # favorite packs per user
-POP_TTL = 60                       # seconds the popularity map is reused
+MAX_PREFS = 100
+POP_TTL = 60
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS users(
@@ -42,16 +41,16 @@ CREATE TABLE IF NOT EXISTS pack_prefs(
   PRIMARY KEY(user_id, pack));
 
 CREATE TABLE IF NOT EXISTS pack_boosts(
-  pack TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,   -- short set name, case-insensitive
-  weight REAL NOT NULL DEFAULT 2.0,                -- ranking multiplier for every user
-  note TEXT NOT NULL DEFAULT '',                   -- e.g. "pack of a friend"
+  pack TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+  weight REAL NOT NULL DEFAULT 2.0,
+  note TEXT NOT NULL DEFAULT '',
   created_ts INTEGER NOT NULL);
 
-CREATE TABLE IF NOT EXISTS pack_requests(      -- packs users asked to add to the search
+CREATE TABLE IF NOT EXISTS pack_requests(
   pack TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
   title TEXT NOT NULL DEFAULT '',
   sticker_count INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'pending',      -- pending | approved | rejected
+  status TEXT NOT NULL DEFAULT 'pending',
   created_ts INTEGER NOT NULL,
   decided_ts INTEGER);
 CREATE INDEX IF NOT EXISTS idx_prq_status ON pack_requests(status);
@@ -68,7 +67,7 @@ CREATE TABLE IF NOT EXISTS edit_suggestions(
   sticker_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
   text TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',     -- pending | approved | rejected
+  status TEXT NOT NULL DEFAULT 'pending',
   created_ts INTEGER NOT NULL,
   decided_ts INTEGER);
 CREATE INDEX IF NOT EXISTS idx_sugg_status ON edit_suggestions(status);
@@ -76,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_sugg_status ON edit_suggestions(status);
 CREATE TABLE IF NOT EXISTS edits_log(
   id INTEGER PRIMARY KEY,
   sticker_id INTEGER NOT NULL,
-  editor TEXT NOT NULL,                       -- 'panel' or 'user:<tg_id>'
+  editor TEXT NOT NULL,
   ts INTEGER NOT NULL,
   old_text TEXT NOT NULL,
   new_text TEXT NOT NULL);
@@ -91,14 +90,14 @@ class Store:
     def __init__(self, path: str):
         self.db = sqlite3.connect(path, check_same_thread=False)
         self.db.execute("PRAGMA busy_timeout=5000")
-        self._lock = threading.RLock()          # one connection works for many threads
-        self._pop: dict[int, int] | None = None  # popularity cache, see sticker_popularity()
+        self._lock = threading.RLock()
+        self._pop: dict[int, int] | None = None
         self._pop_ts = 0.0
         with self._lock:
             self.db.executescript(SCHEMA)
             self.db.commit()
 
-    # ------------------------------------------------------------ events
+
     def touch_user(self, user_id: int):
         now = int(time.time())
         self.db.execute(
@@ -123,7 +122,7 @@ class Store:
                 (int(time.time()), user_id, (query or "")[:200], sticker_id, set_name or ""))
             self.db.commit()
 
-    # ------------------------------------------------------------ popularity prior
+
     def sticker_popularity(self) -> dict[int, int]:
         now = time.monotonic()
         with self._lock:
@@ -135,7 +134,7 @@ class Store:
                 self._pop_ts = now
             return self._pop
 
-    # ------------------------------------------------------------ pack prefs
+
     def user_prefs(self, user_id: int) -> set[str]:
         with self._lock:
             rows = self.db.execute(
@@ -171,8 +170,8 @@ class Store:
         merged: dict[str, int] = {}
         for name, n in (*hist, *extra):
             merged[name] = max(merged.get(name, 0), n)
-        for p in prefs:                       # a preferred pack must stay manageable
-            merged.setdefault(p, 0)           # even with no chosen_events at all
+        for p in prefs:
+            merged.setdefault(p, 0)
         out = [(p, n, p in prefs) for p, n in merged.items()]
         out.sort(key=lambda x: (not x[2], -x[1]))
         return out[offset:offset + limit]
@@ -219,7 +218,7 @@ class Store:
                 "LIMIT ? OFFSET ?", (user_id, user_id, limit + 1, offset)).fetchall()
         return [r[0] for r in rows[:limit]], len(rows) > limit
 
-    # ------------------------------------------------------- pack requests (indexing)
+
     def pack_requests_today(self, user_id: int) -> int:
         with self._lock:
             return self.db.execute(
@@ -263,7 +262,7 @@ class Store:
             self.db.commit()
         return n > 0
 
-    # ------------------------------------------------------- global pack boosts
+
     def global_boosts(self) -> dict[str, float]:
         with self._lock:
             rows = self.db.execute("SELECT pack, weight FROM pack_boosts").fetchall()
@@ -294,7 +293,7 @@ class Store:
             self.db.commit()
         return bool(gone)
 
-    # ------------------------------------------------------------ metrics
+
     def stats(self) -> dict:
         now = int(time.time())
         with self._lock:
@@ -341,7 +340,7 @@ class Store:
         with self._lock:
             total = self.db.execute("SELECT COUNT(*) FROM search_events").fetchone()[0]
             pages = max(1, (total + page_size - 1) // page_size)
-            page = min(page, pages)                 # clamp an overshooting page
+            page = min(page, pages)
             rows = self.db.execute(
                 "SELECT ts, user_id, query FROM search_events "
                 "ORDER BY id DESC LIMIT ? OFFSET ?",
@@ -349,7 +348,7 @@ class Store:
         return {"total": total, "page": page, "page_size": page_size,
                 "pages": pages, "rows": rows}
 
-    # ------------------------------------------- suggestions / description edits
+
     def add_suggestion(self, user_id: int, sticker_id: int, text: str) -> int:
         with self._lock:
             cur = self.db.execute(

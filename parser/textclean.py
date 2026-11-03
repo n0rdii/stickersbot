@@ -35,7 +35,7 @@ def index_list(items) -> list[str]:
     return out
 
 
-# ------------------------------------------------------------------ FTS layout
+
 FTS_LIST_KEYS = ("characters", "objects", "actions", "emotions", "visual_tags", "style_tags")
 FTS_COLUMNS = ("description", *FTS_LIST_KEYS, "emoji", "set_title")
 FTS_TOKENIZE = "porter unicode61 remove_diacritics 2"

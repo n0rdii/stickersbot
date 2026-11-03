@@ -34,13 +34,13 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS stickers(
   id INTEGER PRIMARY KEY,
   file_unique_id TEXT UNIQUE NOT NULL,
-  file_id TEXT NOT NULL,                 
+  file_id TEXT NOT NULL,
   set_name TEXT, set_title TEXT, emoji TEXT, kind TEXT,
   description TEXT,
   characters TEXT, objects TEXT, actions TEXT, emotions TEXT,
-  visual_tags TEXT, style_tags TEXT,   
+  visual_tags TEXT, style_tags TEXT,
   nsfw INTEGER DEFAULT 0,
-  emb BLOB NOT NULL,                    
+  emb BLOB NOT NULL,
   added_ts INTEGER);
 CREATE TABLE IF NOT EXISTS skipped(file_unique_id TEXT PRIMARY KEY, reason TEXT, ts INTEGER);
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);

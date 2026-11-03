@@ -41,16 +41,16 @@ CREATE TABLE IF NOT EXISTS pack_prefs(
   PRIMARY KEY(user_id, pack));
 
 CREATE TABLE IF NOT EXISTS pack_boosts(
-  pack TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,   
-  weight REAL NOT NULL DEFAULT 2.0,                
-  note TEXT NOT NULL DEFAULT '',                   
+  pack TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+  weight REAL NOT NULL DEFAULT 2.0,
+  note TEXT NOT NULL DEFAULT '',
   created_ts INTEGER NOT NULL);
 
-CREATE TABLE IF NOT EXISTS pack_requests(      
+CREATE TABLE IF NOT EXISTS pack_requests(
   pack TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
   title TEXT NOT NULL DEFAULT '',
   sticker_count INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'pending',     
+  status TEXT NOT NULL DEFAULT 'pending',
   created_ts INTEGER NOT NULL,
   decided_ts INTEGER);
 CREATE INDEX IF NOT EXISTS idx_prq_status ON pack_requests(status);
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS edit_suggestions(
   sticker_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
   text TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',     
+  status TEXT NOT NULL DEFAULT 'pending',
   created_ts INTEGER NOT NULL,
   decided_ts INTEGER);
 CREATE INDEX IF NOT EXISTS idx_sugg_status ON edit_suggestions(status);
@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_sugg_status ON edit_suggestions(status);
 CREATE TABLE IF NOT EXISTS edits_log(
   id INTEGER PRIMARY KEY,
   sticker_id INTEGER NOT NULL,
-  editor TEXT NOT NULL,                       
+  editor TEXT NOT NULL,
   ts INTEGER NOT NULL,
   old_text TEXT NOT NULL,
   new_text TEXT NOT NULL);
